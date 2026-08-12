@@ -69,49 +69,6 @@ PASO 3-3.5: Descargar y subir comprobantes
 
 ---
 
-### **ETAPA 1: Reintentar Nóminas Parciales/Pendientes** ⭐
-
-**Archivo:** `run.py` (líneas 133-450)
-
-**Entrada:** Lista de nóminas parciales/pendientes de ETAPA 0
-
-**Tecnología:** Playwright + monto filtering + estado detection
-
-**Mecanismo CRÍTICO (Solución a Problema 2/3):**
-
-Para **cada nómina parcial/pendiente**:
-
-1. **Filtrar tabla del banco por fecha_carga ORIGINAL** (no por "hoy")
-   - La tabla del banco SOPORTA histórico: puedes ver nóminas de hace días
-   - ETAPA 1 busca específicamente en la fecha de carga original
-   - Ejemplo: Si fue cargada el 2026-08-02, filtra por esa fecha
-   
-2. **Extrae ID + Monto de la tabla filtrada**
-   - Busca el ID específico en la tabla histórica
-   - Si lo encuentra: obtiene el monto
-   - Si NO lo encuentra: intenta descarga directa por ID
-   
-3. **Aplica monto filtering** (Desde=monto, Hasta=monto+1)
-   - Aísla exactamente esa nómina
-   
-4. **Descarga PDF y reextrae metadatos**
-   - El estado podría haber cambiado desde que quedó 'parcial'
-   
-5. **Detecta estado nuevo:**
-   - ❌ "Anulación Automática" → Marca como 'anulada' (IGNORA)
-   - ⏳ "Autorización Pendiente" → Marca como 'pendiente' (REINTENTA próxima corrida)
-   - ✅ "Completada" → Continúa a PASO 3 (descargar comprobantes)
-   
-6. **Si todos los comprobantes OK:**
-   - Actualiza estado a 'completo'
-   - Nómina lista, ETAPA 1 no la vuelve a procesar
-
-**Salida:** Nóminas con estado actualizado en BD (puede ser 'anulada', 'pendiente', o 'completo')
-
-**Ventaja:** Una nómina que quedó 'pendiente' hace 5 días SÍ se reintenta hoy, usando su fecha_carga original
-
----
-
 ### **PASO 0: Autenticación en Banco Consorcio**
 
 **Archivo:** `procesos/login.py`
@@ -183,6 +140,49 @@ Para **cada nómina parcial/pendiente**:
   - Sube archivo con nombre: `cartola_consorcio_20260807.xlsx`
 
 **Salida:** Archivo en Google Drive
+
+---
+
+### **ETAPA 1: Reintentar Nóminas Parciales/Pendientes** ⭐
+
+**Archivo:** `run.py` (líneas 133-450)
+
+**Entrada:** Lista de nóminas parciales/pendientes de ETAPA 0
+
+**Tecnología:** Playwright + monto filtering + estado detection
+
+**Mecanismo CRÍTICO (Solución a Problema 2/3):**
+
+Para **cada nómina parcial/pendiente**:
+
+1. **Filtrar tabla del banco por fecha_carga ORIGINAL** (no por "hoy")
+   - La tabla del banco SOPORTA histórico: puedes ver nóminas de hace días
+   - ETAPA 1 busca específicamente en la fecha de carga original
+   - Ejemplo: Si fue cargada el 2026-08-02, filtra por esa fecha
+   
+2. **Extrae ID + Monto de la tabla filtrada**
+   - Busca el ID específico en la tabla histórica
+   - Si lo encuentra: obtiene el monto
+   - Si NO lo encuentra: intenta descarga directa por ID
+   
+3. **Aplica monto filtering** (Desde=monto, Hasta=monto+1)
+   - Aísla exactamente esa nómina
+   
+4. **Descarga PDF y reextrae metadatos**
+   - El estado podría haber cambiado desde que quedó 'parcial'
+   
+5. **Detecta estado nuevo:**
+   - ❌ "Anulación Automática" → Marca como 'anulada' (IGNORA)
+   - ⏳ "Autorización Pendiente" → Marca como 'pendiente' (REINTENTA próxima corrida)
+   - ✅ "Completada" → Continúa a PASO 3 (descargar comprobantes)
+   
+6. **Si todos los comprobantes OK:**
+   - Actualiza estado a 'completo'
+   - Nómina lista, ETAPA 1 no la vuelve a procesar
+
+**Salida:** Nóminas con estado actualizado en BD (puede ser 'anulada', 'pendiente', o 'completo')
+
+**Ventaja:** Una nómina que quedó 'pendiente' hace 5 días SÍ se reintenta hoy, usando su fecha_carga original
 
 ---
 
