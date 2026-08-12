@@ -576,29 +576,14 @@ python run.py
 python cleanup_db.py
 ```
 
-### Variables de Entorno (.env)
-```env
-# Supabase
-SUPABASE_URL=https://xxxxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+### Configuración
+Crear archivo `.env` en la raíz con variables de entorno confidenciales:
+- Credenciales Supabase (URL, API key)
+- Credenciales Google Drive (credentials.json)
+- Credenciales Banco Consorcio (usuario, contraseña)
+- Rutas de descarga y logs
 
-# Google Drive
-GOOGLE_DRIVE_CREDENTIALS_PATH=./credentials.json
-DRIVE_FOLDER_ID_CARTOLAS=xxxxxxxxxxxxxxxxxxxxx
-DRIVE_FOLDER_ID_COMPROBANTES=xxxxxxxxxxxxxxxxxxxxx
-DRIVE_FOLDER_ID_NOMINAS=xxxxxxxxxxxxxxxxxxxxx
-
-# Banco Consorcio
-BANCO_USUARIO=XX.XXX.XXX-X
-BANCO_CLAVE=***
-BANCO_NOMBRE_CARPETA=consorcio
-
-# Descargas
-DOWNLOAD_TEMP_PATH=./temp_downloads
-
-# Logs
-LOG_PATH=./logs
-```
+Ver `config.py` para variables requeridas.
 
 ---
 
