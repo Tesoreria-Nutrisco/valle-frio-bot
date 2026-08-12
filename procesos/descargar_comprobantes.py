@@ -12,7 +12,7 @@ def normalizar_rut(rut):
     return rut.replace(".", "")
 
 
-async def paso_3_descargar_comprobante_rut(page, rut, fecha_hoy):
+async def paso_3_descargar_comprobante_rut(page, rut, fecha_pago):
     """
     Descarga un comprobante individual para un RUT específico.
 
@@ -117,8 +117,8 @@ async def paso_3_descargar_comprobante_rut(page, rut, fecha_hoy):
         except Exception as e:
             logger.warning(f"Error seleccionando convenio: {e}")
 
-        # Llenar AMBAS fechas (Desde y Hasta)
-        fecha_str = fecha_hoy.strftime("%d/%m/%Y")
+        # Llenar AMBAS fechas (Desde y Hasta) con fecha_pago exacta
+        fecha_str = fecha_pago.strftime("%d/%m/%Y") if fecha_pago else datetime.now().strftime("%d/%m/%Y")
         try:
             await page.evaluate(f"""
                 () => {{
@@ -204,7 +204,7 @@ async def paso_3_descargar_comprobante_rut(page, rut, fecha_hoy):
         # Guardar el archivo
         download = await download_info.value
         rut_normalizado = normalizar_rut(rut)
-        fecha_str_file = fecha_hoy.strftime("%Y%m%d")
+        fecha_str_file = fecha_pago.strftime("%Y%m%d") if fecha_pago else datetime.now().strftime("%Y%m%d")
         comprobante_path = TEMP_DOWNLOAD_PATH / f"comprobante_{fecha_str_file}_{rut_normalizado}.pdf"
 
         await download.save_as(str(comprobante_path))
@@ -217,11 +217,15 @@ async def paso_3_descargar_comprobante_rut(page, rut, fecha_hoy):
         raise
 
 
-async def paso_3_descargar_todos_comprobantes(page, ruts_unicos, fecha_hoy):
+async def paso_3_descargar_todos_comprobantes(page, ruts_unicos, fecha_pago, drive_service=None, folder_id_comprobantes=None):
     """
     PASO 3: Descargar comprobantes individuales para cada RUT.
 
-    Por cada RUT único encontrado en la nómina, descarga su comprobante individual.
+    Por cada RUT único encontrado en la nómina, descarga su comprobante individual
+    con la fecha_pago exacta (no un rango de fechas).
+
+    Si drive_service y folder_id_comprobantes se proporcionan, verifica si el
+    comprobante ya existe en Drive antes de descargar (deduplicación para nóminas 'parcial').
     """
     logger.info(f"PASO 3: Descargando comprobantes para {len(ruts_unicos)} RUTs...")
 
@@ -230,7 +234,22 @@ async def paso_3_descargar_todos_comprobantes(page, ruts_unicos, fecha_hoy):
     for idx, rut in enumerate(ruts_unicos, 1):
         logger.info(f"Procesando RUT {idx}/{len(ruts_unicos)}: {rut}")
         try:
-            comprobante_path = await paso_3_descargar_comprobante_rut(page, rut, fecha_hoy)
+            # Si tenemos acceso a Drive, verificar si el comprobante ya existe
+            if drive_service and folder_id_comprobantes:
+                rut_normalizado = rut.replace(".", "").replace("-", "")
+                fecha_str_file = fecha_pago.strftime("%Y%m%d") if fecha_pago else datetime.now().strftime("%Y%m%d")
+                expected_filename = f"comprobante_consorcio_{fecha_str_file}_{rut_normalizado}.pdf"
+
+                # Buscar si el archivo ya existe en la carpeta
+                query = f"'{folder_id_comprobantes}' in parents and name='{expected_filename}' and trashed=false"
+                results = drive_service.files().list(q=query, spaces='drive', pageSize=1).execute()
+
+                if results.get('files'):
+                    logger.info(f"✓ Comprobante ya existe en Drive para RUT {rut}, saltando descarga")
+                    comprobantes_descargados.append((rut, None))
+                    continue
+
+            comprobante_path = await paso_3_descargar_comprobante_rut(page, rut, fecha_pago)
             comprobantes_descargados.append((rut, comprobante_path))
         except Exception as e:
             logger.error(f"Error con RUT {rut}, continuando con siguiente...")

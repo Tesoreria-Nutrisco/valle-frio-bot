@@ -2,7 +2,7 @@ import logging
 import asyncio
 from pathlib import Path
 from datetime import datetime
-from config import TEMP_DOWNLOAD_PATH, BANCO_URL_LOGIN
+from config import TEMP_DOWNLOAD_PATH, CARTOLAS_PATH, BANCO_URL_LOGIN
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +53,9 @@ async def paso_1_descargar_cartola(page, fecha_busqueda=None):
         await asyncio.sleep(1)
         logger.info("Formulario de búsqueda cargado")
 
-        # Cambiar fechas "Desde" y "Hasta" a la fecha especificada
-        fecha_str = fecha_busqueda.strftime("%d/%m/%Y")
-
-        await page.evaluate("(fecha) => { const inputs = document.querySelectorAll('input.md-datepicker-input'); if (inputs.length > 0) { inputs[0].value = fecha; inputs[0].dispatchEvent(new Event('input', { bubbles: true })); inputs[0].dispatchEvent(new Event('change', { bubbles: true })); } if (inputs.length > 1) { inputs[1].value = fecha; inputs[1].dispatchEvent(new Event('input', { bubbles: true })); inputs[1].dispatchEvent(new Event('change', { bubbles: true })); } }", fecha_str)
-
-        await asyncio.sleep(0.8)
-        logger.info(f"Fechas cambiadas a: {fecha_str}")
+        # NO cambiar fechas - descargar TODO el reporte sin filtrar por fecha
+        # El banco devuelve sus "últimos movimientos" por defecto (típicamente últimos 30-90 días)
+        logger.info("Descargando reporte completo sin filtro de fecha")
 
         # Click en "Buscar"
         await page.click("button:has-text('Buscar')", timeout=5000)
@@ -97,13 +93,16 @@ async def paso_1_descargar_cartola(page, fecha_busqueda=None):
         # Guardar el archivo descargado
         download = await download_info.value
         fecha_str_file = fecha_busqueda.strftime("%Y%m%d")
-        cartola_path = TEMP_DOWNLOAD_PATH / f"cartola_{fecha_str_file}.xlsx"
+
+        # Asegurar que el directorio existe
+        CARTOLAS_PATH.mkdir(parents=True, exist_ok=True)
+        cartola_path = CARTOLAS_PATH / f"cartola_{fecha_str_file}.xlsx"
 
         try:
             await download.save_as(str(cartola_path))
         except PermissionError:
             # Si el archivo está en uso, usar nombre temporal
-            cartola_path = TEMP_DOWNLOAD_PATH / f"cartola_{fecha_str_file}_temp.xlsx"
+            cartola_path = CARTOLAS_PATH / f"cartola_{fecha_str_file}_temp.xlsx"
             await download.save_as(str(cartola_path))
             logger.warning(f"Archivo anterior en uso, guardado como temporal")
 
