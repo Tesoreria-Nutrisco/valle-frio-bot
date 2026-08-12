@@ -24,6 +24,28 @@ Bot automatizado para descargar y procesar **cartolas bancarias** y **nóminas d
 
 ## 📋 Flujo Completo del Bot (9 Etapas/Pasos)
 
+### Orden Completo de Ejecución
+
+```
+ETAPA 0: Leer nóminas parciales de BD (sin filtro de fecha)
+  ↓
+PASO 0: Login en banco
+  ↓
+PASO 1-1.6: Descargar y procesar cartola
+  ↓
+ETAPA 1: Reintentar nóminas parciales/pendientes con sus fechas originales
+  ↓
+PASO 2-2.6: Procesar nóminas nuevas de hoy
+  ↓
+PASO 3-3.5: Descargar y subir comprobantes
+```
+
+**Resumen:**
+- **ETAPA 0/1** = Histórico (reintentos de días anteriores)
+- **PASO 0-3.5** = Flujo normal (cartolas y nóminas de hoy)
+
+---
+
 ### **ETAPA 0: Verificar Nóminas Parciales de Días Anteriores** ⭐
 
 **Archivo:** `run.py` (líneas 74-86)
@@ -87,28 +109,6 @@ Para **cada nómina parcial/pendiente**:
 **Salida:** Nóminas con estado actualizado en BD (puede ser 'anulada', 'pendiente', o 'completo')
 
 **Ventaja:** Una nómina que quedó 'pendiente' hace 5 días SÍ se reintenta hoy, usando su fecha_carga original
-
----
-
-### Orden Completo de Ejecución
-
-```
-ETAPA 0: Leer nóminas parciales de BD (sin filtro de fecha)
-  ↓
-PASO 0: Login en banco
-  ↓
-PASO 1-1.6: Descargar y procesar cartola
-  ↓
-ETAPA 1: Reintentar nóminas parciales/pendientes con sus fechas originales
-  ↓
-PASO 2-2.6: Procesar nóminas nuevas de hoy
-  ↓
-PASO 3-3.5: Descargar y subir comprobantes
-```
-
-**Resumen:**
-- **ETAPA 0/1** = Histórico (reintentos de días anteriores)
-- **PASO 0-3.5** = Flujo normal (cartolas y nóminas de hoy)
 
 ---
 
