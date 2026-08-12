@@ -22,7 +22,95 @@ Bot automatizado para descargar y procesar **cartolas bancarias** y **nóminas d
 
 ---
 
-## 📋 Flujo Completo del Bot (7 Pasos)
+## 📋 Flujo Completo del Bot (9 Etapas/Pasos)
+
+### **ETAPA 0: Verificar Nóminas Parciales de Días Anteriores** ⭐
+
+**Archivo:** `run.py` (líneas 74-86)
+
+**Entrada:** Base de datos Supabase
+
+**Tecnología:** Supabase RPC - `obtener_nominas_parciales()`
+
+**Mecanismo CRÍTICO (Solución a Problema 2/3):**
+
+1. **SIN filtro de fecha:** Consulta tabla `bot1_nominas_descargadas` por estado IN ('parcial', 'pendiente')
+2. Retorna TODAS las nóminas incompletas **de cualquier fecha** (hoy, ayer, hace 5 días, etc.)
+3. Ejemplo:
+   - Nómina ID 1964514 quedó 'pendiente' hace 5 días (fecha_carga: 2026-08-02)
+   - Nómina ID 1965890 quedó 'parcial' hace 2 días (fecha_carga: 2026-08-05)
+   - ETAPA 0 las trae AMBAS para reintento
+
+**Salida:** Lista de dicts con `id_nomina`, `fecha_carga`, `fecha_pago`, `estado`
+
+**Importante:** Si no hay nóminas parciales, ETAPA 1 se salta; si las hay, continúan en ETAPA 1
+
+---
+
+### **ETAPA 1: Reintentar Nóminas Parciales/Pendientes** ⭐
+
+**Archivo:** `run.py` (líneas 133-450)
+
+**Entrada:** Lista de nóminas parciales/pendientes de ETAPA 0
+
+**Tecnología:** Playwright + monto filtering + estado detection
+
+**Mecanismo CRÍTICO (Solución a Problema 2/3):**
+
+Para **cada nómina parcial/pendiente**:
+
+1. **Filtrar tabla del banco por fecha_carga ORIGINAL** (no por "hoy")
+   - La tabla del banco SOPORTA histórico: puedes ver nóminas de hace días
+   - ETAPA 1 busca específicamente en la fecha de carga original
+   - Ejemplo: Si fue cargada el 2026-08-02, filtra por esa fecha
+   
+2. **Extrae ID + Monto de la tabla filtrada**
+   - Busca el ID específico en la tabla histórica
+   - Si lo encuentra: obtiene el monto
+   - Si NO lo encuentra: intenta descarga directa por ID
+   
+3. **Aplica monto filtering** (Desde=monto, Hasta=monto+1)
+   - Aísla exactamente esa nómina
+   
+4. **Descarga PDF y reextrae metadatos**
+   - El estado podría haber cambiado desde que quedó 'parcial'
+   
+5. **Detecta estado nuevo:**
+   - ❌ "Anulación Automática" → Marca como 'anulada' (IGNORA)
+   - ⏳ "Autorización Pendiente" → Marca como 'pendiente' (REINTENTA próxima corrida)
+   - ✅ "Completada" → Continúa a PASO 3 (descargar comprobantes)
+   
+6. **Si todos los comprobantes OK:**
+   - Actualiza estado a 'completo'
+   - Nómina lista, ETAPA 1 no la vuelve a procesar
+
+**Salida:** Nóminas con estado actualizado en BD (puede ser 'anulada', 'pendiente', o 'completo')
+
+**Ventaja:** Una nómina que quedó 'pendiente' hace 5 días SÍ se reintenta hoy, usando su fecha_carga original
+
+---
+
+### Orden Completo de Ejecución
+
+```
+ETAPA 0: Leer nóminas parciales de BD (sin filtro de fecha)
+  ↓
+PASO 0: Login en banco
+  ↓
+PASO 1-1.6: Descargar y procesar cartola
+  ↓
+ETAPA 1: Reintentar nóminas parciales/pendientes con sus fechas originales
+  ↓
+PASO 2-2.6: Procesar nóminas nuevas de hoy
+  ↓
+PASO 3-3.5: Descargar y subir comprobantes
+```
+
+**Resumen:**
+- **ETAPA 0/1** = Histórico (reintentos de días anteriores)
+- **PASO 0-3.5** = Flujo normal (cartolas y nóminas de hoy)
+
+---
 
 ### **PASO 0: Autenticación en Banco Consorcio**
 
@@ -364,10 +452,21 @@ CREATE TABLE valle_frio_bot.bot1_nominas_descargadas (
 **Campo `ruta_drive`:** Folder ID en Google Drive donde se guardaron comprobantes  
 
 **Estados:**
-- `'anulada'`: Rechazada por banco (no procesar)
-- `'pendiente'`: Autorización en proceso (reintenta próxima vez)
-- `'parcial'`: Algunos comprobantes descargados (reintenta próxima vez)
-- `'completo'`: Todos comprobantes descargados (listo, ignora)
+- `'anulada'`: Rechazada por banco (no procesar, ignorar en futuras corridas)
+- `'pendiente'`: Autorización en proceso (ETAPA 0/1 reintenta, usando fecha_carga original)
+- `'parcial'`: Algunos comprobantes descargados (ETAPA 0/1 reintenta, usando fecha_carga original)
+- `'completo'`: Todos comprobantes descargados (listo, ETAPA 0/1 ignora en futuras corridas)
+
+**Consulta ETAPA 0 (obtener_nominas_parciales):**
+```sql
+SELECT id_nomina, fecha_carga, fecha_pago, estado
+FROM bot1_nominas_descargadas
+WHERE estado IN ('parcial', 'pendiente')
+-- SIN filtro de fecha: trae histórico
+```
+
+**Clave de reintento:** ETAPA 1 filtra tabla del banco por `fecha_carga` original (no por "hoy")  
+**Ejemplo:** Nómina pendiente del 2026-08-02 se reintenta filtrando la tabla por 2026-08-02, no por hoy (2026-08-07)
 
 **Limpieza:** `DELETE FROM valle_frio_bot.bot1_nominas_descargadas;`
 
@@ -480,15 +579,25 @@ python cleanup_db.py
 ### Variables de Entorno (.env)
 ```env
 # Supabase
-SUPABASE_URL=https://zczzcvlpvnwevoxfosdp.supabase.co
+SUPABASE_URL=https://xxxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Google Drive
-GOOGLE_CREDENTIALS_PATH=./credentials.json
+GOOGLE_DRIVE_CREDENTIALS_PATH=./credentials.json
+DRIVE_FOLDER_ID_CARTOLAS=xxxxxxxxxxxxxxxxxxxxx
+DRIVE_FOLDER_ID_COMPROBANTES=xxxxxxxxxxxxxxxxxxxxx
+DRIVE_FOLDER_ID_NOMINAS=xxxxxxxxxxxxxxxxxxxxx
 
 # Banco Consorcio
-BANCO_RUT=20.430.968-K
-BANCO_PASSWORD=***
+BANCO_USUARIO=XX.XXX.XXX-X
+BANCO_CLAVE=***
+BANCO_NOMBRE_CARPETA=consorcio
+
+# Descargas
+DOWNLOAD_TEMP_PATH=./temp_downloads
+
+# Logs
+LOG_PATH=./logs
 ```
 
 ---
