@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Notificación de pago (identidad Valle Frío)</title>
+</head>
+<body style="margin:0; padding:32px 16px; background:#f2f1ec; font-family:Arial, Helvetica, sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+
+  <tr>
+    <td style="background:#1B1868; padding:20px 28px 24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="vertical-align:middle;">
+            <div style="color:#ffffff; font-weight:bold; font-size:22px;">Notificación de Pago Valle Frío</div>
+            <div style="color:#ffffff; font-size:13px; margin-top:6px; opacity:0.92;">Pago confirmado — {{FECHA_PAGO}}</div>
+          </td>
+          <td style="text-align:right; vertical-align:middle;">
+            <div style="background:#ffffff; border-radius:8px; padding:8px 14px; display:inline-block;">
+              <img src="logo_vallefrio.png" alt="Valle Frío" height="46" style="display:block;">
+            </div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:28px 28px 8px;">
+      <p style="font-size:14.5px; color:#2c2c2a; margin:0 0 6px; line-height:1.6;">Estimado(a) {{NOMBRE_PRODUCTOR}}, le informamos que se ha procesado el pago de su(s) factura(s). Adjuntamos el comprobante bancario para su registro.</p>
+      <p style="font-size:12px; color:#85837c; margin:0 0 18px; line-height:1.5;">Se notifica también a su agrónomo zonal asignado, en copia a este correo.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF1FA; border-radius:8px;">
+        <tr>
+          <td style="padding:22px; text-align:center;">
+            <div style="font-size:12px; font-weight:bold; letter-spacing:0.04em; color:#1B1868; text-transform:uppercase;">Monto total pagado</div>
+            <div style="font-size:32px; font-weight:bold; color:#1B1868; margin-top:6px;">${{MONTO_TOTAL}}</div>
+            <div style="font-size:11.5px; color:#5a5a8a; margin-top:4px;">{{NUM_FACTURAS}} factura(s) · comprobante {{COMPROBANTE}}</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:8px 28px 4px;">
+      <div style="border-left:3px solid #1B1868; padding-left:10px; font-size:14px; font-weight:bold; color:#2c2c2a; margin-bottom:10px;">Detalle del pago</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px; border-collapse:collapse;">
+        <tr style="background:#f8fafc;">
+          <td style="padding:8px 10px; color:#64748b; font-weight:bold; border-bottom:1px solid #e2e8f0;">Factura</td>
+          <td style="padding:8px 10px; color:#64748b; font-weight:bold; border-bottom:1px solid #e2e8f0;">Fecha de pago</td>
+          <td style="padding:8px 10px; color:#64748b; font-weight:bold; border-bottom:1px solid #e2e8f0; text-align:right;">Monto</td>
+        </tr>
+        {{FILAS_FACTURAS}}
+        <tr>
+          <td style="padding:10px; color:#2c2c2a; font-weight:bold;" colspan="2">Total</td>
+          <td style="padding:10px; color:#1B1868; font-weight:bold; text-align:right;">${{MONTO_TOTAL}}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:20px 28px 24px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" style="background:#EEF1FA; border-radius:6px;">
+        <tr>
+          <td style="padding:10px 16px; font-size:13px; color:#1B1868;">📎 {{NOMBRE_COMPROBANTE}}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 24px;">
+      <p style="font-size:12px; color:#94a3b8; margin:0; font-style:italic;">Este correo se genera automáticamente al confirmarse el pago en el sistema de tesorería.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#1B1868; padding:20px 28px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="text-align:center;">
+            <p style="font-size:12px; color:#c7cbe8; margin:0 0 6px;">Este correo fue generado automáticamente.</p>
+            <p style="font-size:12px; color:#c7cbe8; margin:0 0 14px;">Para consultas contacte a <a href="mailto:projects.treasury.finance@nutrisco.com" style="color:#9fb3f0;">projects.treasury.finance@nutrisco.com</a></p>
+            <img src="logo_nutrisco.png" alt="Nutrisco" height="16" style="display:inline-block; opacity:0.9;">
+            <p style="font-size:11px; color:#8b8fc0; margin:10px 0 0;">© 2026 Nutrisco.</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+</table>
+</body>
+</html>

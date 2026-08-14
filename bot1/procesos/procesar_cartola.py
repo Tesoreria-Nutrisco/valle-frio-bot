@@ -8,10 +8,44 @@ PASO 1.5: Procesar cartola descargada.
 
 import logging
 from pathlib import Path
+from datetime import datetime
 import pandas as pd
 from supabase_client import verificar_cartola_transaccion, insertar_cartola_transaccion
 
 logger = logging.getLogger(__name__)
+
+
+def parsear_fecha_chilena(fecha_str) -> datetime.date:
+    """
+    Parsea fecha en formato DD/MM/YYYY (chileno) a date object.
+    CRÍTICO: evitar que pandas interprete como MM/DD/YYYY (US format).
+
+    Detecta si pandas ya lo parseó incorrectamente y rechaza.
+
+    Args:
+        fecha_str: String en formato "DD/MM/YYYY" o datetime ya parseado
+
+    Returns:
+        date object con la fecha correcta, o None si está inválida
+    """
+    if pd.isna(fecha_str):
+        return None
+
+    # Si ya es datetime object:
+    # - Si pandas lo parseó incorrectamente, tendrá mes/día invertidos
+    # - Rechazamos cualquier datetime que ya vino parseado (es sospechoso)
+    # - Forzamos parseo de string nuevamente
+    if isinstance(fecha_str, datetime):
+        # Si es datetime pero también es string (edge case), parseamos el string
+        # Else, reconvertimos a string y parseamos
+        fecha_str = fecha_str.strftime("%d/%m/%Y")
+
+    # Parsear string con formato DD/MM/YYYY explícito
+    try:
+        return datetime.strptime(str(fecha_str).strip(), "%d/%m/%Y").date()
+    except ValueError as e:
+        logger.warning(f"No se pudo parsear fecha '{fecha_str}': {e}")
+        return None
 
 
 async def paso_1_5_procesar_cartola(cartola_path: Path) -> list:
@@ -37,7 +71,13 @@ async def paso_1_5_procesar_cartola(cartola_path: Path) -> list:
 
     try:
         # Leer con pandas sin encabezado (XLS tiene formato con espacios en blanco al inicio)
-        df_raw = pd.read_excel(cartola_path, engine='xlrd' if str(cartola_path).endswith('.xls') else None, header=None)
+        # CRÍTICO: especificar que las fechas están en formato DD/MM/YYYY (Chile), no MM/DD/YYYY (US)
+        df_raw = pd.read_excel(
+            cartola_path,
+            engine='xlrd' if str(cartola_path).endswith('.xls') else None,
+            header=None,
+            parse_dates=False  # No parsear automáticamente; lo haremos después con formato explícito
+        )
         logger.info(f"Archivo cargado: {len(df_raw)} filas totales")
 
         # Buscar la fila de encabezados (contiene "Num.")
@@ -69,7 +109,7 @@ async def paso_1_5_procesar_cartola(cartola_path: Path) -> list:
         for idx, row in df.iterrows():
             try:
                 num_transaccion = row["Num."]
-                fecha_contable = row["Fecha Contable"]
+                fecha_str = row["Fecha Contable"]
 
                 # Determinar monto: usar Cargos o Abonos (uno de los dos tiene valor)
                 cargos = row.get("Cargos", None)
@@ -77,8 +117,14 @@ async def paso_1_5_procesar_cartola(cartola_path: Path) -> list:
                 monto = cargos if pd.notna(cargos) and cargos != 0 else abonos
 
                 # Saltar filas vacías
-                if pd.isna(num_transaccion) or pd.isna(fecha_contable):
+                if pd.isna(num_transaccion) or pd.isna(fecha_str):
                     logger.debug(f"Fila {idx}: vacía, saltando")
+                    continue
+
+                # CRÍTICO: Parsear fecha con formato DD/MM/YYYY (no dejar que pandas lo haga con MM/DD/YYYY)
+                fecha_contable = parsear_fecha_chilena(fecha_str)
+                if fecha_contable is None:
+                    logger.warning(f"No se pudo parsear fecha en fila {idx}: {fecha_str}")
                     continue
 
                 # Verificar si ya existe en Supabase

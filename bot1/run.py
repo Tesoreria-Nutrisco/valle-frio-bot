@@ -339,7 +339,9 @@ class BotConsorcio:
                                     comprobantes = await paso_3_descargar_todos_comprobantes(
                                         self.page, ruts_unicos, fecha_pago_nueva,
                                         drive_service=self.drive_service,
-                                        folder_id_comprobantes=folder_id_comprobantes
+                                        folder_id_comprobantes=folder_id_comprobantes,
+                                        paso_0_login_fn=paso_0_login,
+                                        browser=self.browser
                                     )
 
                                     # Subir a Drive
@@ -404,19 +406,34 @@ class BotConsorcio:
                 # (Verificación 1: no deben quedar filtros de fecha antigua pegados)
                 if nominas_parciales:
                     logger.info("Reseteando estado de la página después de ETAPA 1...")
+                    logger.info("⏸️  Pausa de 30s para recuperación del navegador después de procesar muchos comprobantes...")
+                    await asyncio.sleep(30)  # Pausa larga para que navegador se recupere
                     try:
                         await self.page.click("nav a:has-text('Pagos'), [role='tablist'] a:has-text('Pagos')", timeout=10000)
                         await asyncio.sleep(2)
                     except:
                         pass
 
+                # ========== REFRESH: Cerrar y abrir página nueva si hay nóminas parciales ==========
+                if ids_procesados_etapa1:
+                    logger.info("=" * 80)
+                    logger.info("Cerrando página exhausta y abriendo nueva para PASO 2...")
+                    logger.info("=" * 80)
+                    await self.page.close()
+                    self.page = await self.browser.new_page()
+                    self.page.set_default_timeout(30000)
+                    await paso_0_login(self.page)
+                    logger.info("✓ Nueva sesión iniciada")
+
                 # ========== PASO 2: Descargar nóminas no-procesadas de hoy ==========
                 logger.info("PASO 2: Iniciando descarga de nóminas...")
+                logger.info("⏸️  Pausa de 10s para resetear navegador después de descargas intensivas...")
+                await asyncio.sleep(10)  # Pausa para que el navegador se recupere
                 ids_nominas = []
 
                 try:
-                    # Navegar a Estado de Firmas
-                    await self.page.wait_for_selector("nav a:has-text('Pagos')", timeout=30000)
+                    # Navegar a Estado de Firmas (aumentado a 60s de timeout)
+                    await self.page.wait_for_selector("nav a:has-text('Pagos')", timeout=60000)
                     await asyncio.sleep(1)
                     await self.page.click("nav a:has-text('Pagos')", timeout=10000)
                     await asyncio.sleep(3)
@@ -656,7 +673,9 @@ class BotConsorcio:
                             comprobantes = await paso_3_descargar_todos_comprobantes(
                                 self.page, ruts_unicos, fecha_pago,
                                 drive_service=self.drive_service,
-                                folder_id_comprobantes=folder_id_comprobantes
+                                folder_id_comprobantes=folder_id_comprobantes,
+                                paso_0_login_fn=paso_0_login,
+                                browser=self.browser
                             )
 
                             # ========== PASO 3.5: Subir comprobantes a Drive ==========

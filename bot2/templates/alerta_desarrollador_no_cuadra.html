@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Alerta — pago sin cuadrar tras 3 corridas</title>
+</head>
+<body style="margin:0; padding:32px 16px; background:#f2f1ec; font-family:Arial, Helvetica, sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+
+  <tr>
+    <td style="background:#a32d2d; padding:18px 28px;">
+      <span style="color:#ffffff; font-weight:bold; font-size:16px;">⚠ Alerta: pago sin cuadrar (3+ corridas)</span>
+      <div style="color:#ffffff; font-size:12.5px; margin-top:4px; opacity:0.9;">Bot de notificación de pagos a productores — Valle Frío</div>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:24px 28px 8px;">
+      <p style="font-size:13.5px; color:#2c2c2a; margin:0 0 16px; line-height:1.6;">Un pago identificado en Softland no encontró coincidencia en la cartola bancaria correspondiente tras <strong>3 intentos de comparación dentro de la misma corrida</strong>. No se generarán más reintentos automáticos para este pago en esta ejecución — requiere revisión manual.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbe9e9; border-radius:8px;">
+        <tr>
+          <td style="padding:18px 22px; font-size:13px; font-family:'Courier New', monospace; color:#2c2c2a;">
+            <div style="margin-bottom:8px;"><strong>Comprobante:</strong> {{COMPROBANTE}}</div>
+            <div style="margin-bottom:8px;"><strong>Fecha contable (Softland):</strong> {{FECHA_CONTABLE}}</div>
+            <div style="margin-bottom:8px;"><strong>Monto:</strong> {{MONTO}}</div>
+            <div style="margin-bottom:8px;"><strong>Cuenta contabilizada en Softland:</strong> {{CUENTA_SOFTLAND}}</div>
+            <div style="margin-bottom:8px;"><strong>Auxiliar:</strong> {{PRODUCTOR_COD}} — {{PRODUCTOR_NOMBRE}}</div>
+            <div style="margin-bottom:8px;"><strong>Glosa:</strong> {{GLOSA}}</div>
+            <div><strong>Intentos de comparación:</strong> 3 de 3, dentro de la corrida del {{FECHA_CORRIDA}}</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 20px;">
+      <p style="font-size:12.5px; color:#5f5e5a; margin:0; line-height:1.6;"><strong>Posible causa:</strong> no se encontró un cargo equivalente en la cartola de banco tras 3 intentos en esta misma corrida. Verificar si el comprobante fue contabilizado contra la cuenta bancaria incorrecta, o si el pago aún no se ha ejecutado (en ese caso, aparecerá solo en una corrida futura si se reintenta manualmente).</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 28px;">
+      <a href="#" style="display:inline-block; background:#a32d2d; color:#ffffff; text-decoration:none; font-size:13px; font-weight:bold; padding:10px 20px; border-radius:6px;">Ver registro en Supabase</a>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f7f6f1; padding:14px 28px; border-top:1px solid #e3e1d8;">
+      <p style="font-size:11px; color:#94a3b8; margin:0;">Generado automáticamente por el proceso de notificación de pagos. Corrida: {{FECHA_CORRIDA}}.</p>
+    </td>
+  </tr>
+
+</table>
+</body>
+</html>

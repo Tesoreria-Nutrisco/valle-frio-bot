@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Alerta — falta correo de productor y zonal</title>
+</head>
+<body style="margin:0; padding:32px 16px; background:#f2f1ec; font-family:Arial, Helvetica, sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+
+  <tr>
+    <td style="background:#ba7517; padding:18px 28px;">
+      <span style="color:#ffffff; font-weight:bold; font-size:16px;">⚠ Alerta: pago confirmado sin contacto</span>
+      <div style="color:#ffffff; font-size:12.5px; margin-top:4px; opacity:0.9;">Bot de notificación de pagos a productores — Valle Frío</div>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:24px 28px 8px;">
+      <p style="font-size:13.5px; color:#2c2c2a; margin:0 0 16px; line-height:1.6;">Este pago <strong>ya está confirmado</strong> (cuadró exacto entre banco y Softland) y su comprobante ya quedó guardado en Drive y Supabase — pero <strong>ni el productor ni el agrónomo zonal tienen un correo registrado</strong>. No se pudo enviar ninguna notificación automática.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faeeda; border-radius:8px;">
+        <tr>
+          <td style="padding:18px 22px; font-size:13px; font-family:'Courier New', monospace; color:#2c2c2a;">
+            <div style="margin-bottom:8px;"><strong>Comprobante:</strong> {{COMPROBANTE}}</div>
+            <div style="margin-bottom:8px;"><strong>Fecha:</strong> {{FECHA_PAGO}}</div>
+            <div style="margin-bottom:8px;"><strong>Monto:</strong> {{MONTO}}</div>
+            <div style="margin-bottom:8px;"><strong>Productor:</strong> {{PRODUCTOR_NOMBRE}} (RUT {{PRODUCTOR_COD}})</div>
+            <div style="margin-bottom:8px;"><strong>Correo productor (EMail):</strong> <span style="color:#a32d2d;">{{PRODUCTOR_EMAIL}}</span></div>
+            <div style="margin-bottom:8px;"><strong>Correo productor (eMailDTE):</strong> <span style="color:#a32d2d;">{{PRODUCTOR_EMAIL_DTE}}</span></div>
+            <div style="margin-bottom:8px;"><strong>Correo contacto (cwtaxco):</strong> <span style="color:#a32d2d;">{{PRODUCTOR_EMAIL_CONTACTO}}</span></div>
+            <div><strong>Correo agrónomo zonal:</strong> <span style="color:#a32d2d;">{{ZONAL_EMAIL}}</span></div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 20px;">
+      <p style="font-size:12.5px; color:#5f5e5a; margin:0; line-height:1.6;"><strong>Acción sugerida:</strong> completar el correo del productor en <code>cwtauxi</code> (campo EMail o eMailDTE), o registrar el contacto del agrónomo zonal correspondiente. El pago queda en la cola de revisión manual hasta que se complete un contacto — no se reintenta automáticamente.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 28px;">
+      <a href="#" style="display:inline-block; background:#ba7517; color:#ffffff; text-decoration:none; font-size:13px; font-weight:bold; padding:10px 20px; border-radius:6px;">Ver registro en Supabase</a>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f7f6f1; padding:14px 28px; border-top:1px solid #e3e1d8;">
+      <p style="font-size:11px; color:#94a3b8; margin:0;">Generado automáticamente por el proceso de notificación de pagos. Corrida: {{FECHA_CORRIDA}}.</p>
+    </td>
+  </tr>
+
+</table>
+</body>
+</html>
