@@ -243,7 +243,7 @@ def extraer_ruts_nomina_excel(excel_path):
         wb = openpyxl.load_workbook(str(excel_path))
         ws = wb.active
 
-        # Buscar encabezados y la columna RUT
+        # Buscar encabezados y la columna "Rut Beneficiario"
         headers = []
         rut_column = None
 
@@ -252,9 +252,13 @@ def extraer_ruts_nomina_excel(excel_path):
             if any(cell and "rut" in str(cell).lower() for cell in row if cell):
                 headers = row
                 for idx, header in enumerate(headers):
-                    if header and "rut" in str(header).lower():
+                    if header and "beneficiario" in str(header).lower() and "rut" in str(header).lower():
                         rut_column = idx
+                        logger.info(f"Columna 'Rut Beneficiario' encontrada en índice {idx}")
                         break
+                    elif header and "rut" in str(header).lower():
+                        rut_column = idx
+                        logger.info(f"Columna con RUT encontrada en índice {idx}: {header}")
                 break
 
         if rut_column is None:

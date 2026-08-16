@@ -467,14 +467,25 @@ async def paso_2_descargar_nomina_por_id_excel(page, id_nomina, fecha_busqueda=N
             async with page.expect_download() as download_info:
                 excel_clicked = await page.evaluate("""
                     () => {
-                        const links = document.querySelectorAll('a[ng-click*="getDescargaNominaOperacionExcel"]');
+                        // Intentar primero por ng-click
+                        let links = document.querySelectorAll('a[ng-click*="getDescargaNominaOperacionExcel"]');
                         for (let link of links) {
                             if (link.offsetParent !== null) {
                                 link.click();
-                                return 'clicked visible link';
+                                return 'clicked by ng-click';
                             }
                         }
-                        return 'no visible link found';
+
+                        // Fallback: buscar por texto "EXCEL"
+                        links = document.querySelectorAll('a');
+                        for (let link of links) {
+                            if (link.textContent.includes('EXCEL') && link.offsetParent !== null) {
+                                link.click();
+                                return 'clicked by text EXCEL';
+                            }
+                        }
+
+                        return 'no link found';
                     }
                 """)
                 logger.info(f"EXCEL click resultado: {excel_clicked}")
