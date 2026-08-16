@@ -27,13 +27,12 @@ from config import (
     DRIVE_FOLDER_ID_CARTOLAS, DRIVE_FOLDER_ID_COMPROBANTES, DRIVE_FOLDER_ID_NOMINAS, BANCO_NOMBRE_CARPETA
 )
 from drive_utils import get_drive_service, get_carpeta_destino, upload_file
-from pdf_parser import extraer_ruts_nomina
+from pdf_parser import extraer_ruts_nomina, extraer_metadatos_nomina, extraer_ruts_nomina_excel
 from procesos.login import paso_0_login
 from procesos.descargar_cartola import paso_1_descargar_cartola
 from procesos.procesar_cartola import paso_1_5_procesar_cartola
-from procesos.descargar_nomina import paso_2_descargar_nomina, obtener_ids_nominas_tabla, paso_2_descargar_nomina_por_id, obtener_nominas_con_montos, paso_2_descargar_nomina_por_monto
+from procesos.descargar_nomina import paso_2_descargar_nomina, obtener_ids_nominas_tabla, paso_2_descargar_nomina_por_id, obtener_nominas_con_montos, paso_2_descargar_nomina_por_monto, paso_2_descargar_nomina_por_id_excel
 from procesos.descargar_comprobantes import paso_3_descargar_todos_comprobantes
-from pdf_parser import extraer_metadatos_nomina, extraer_ruts_nomina
 from supabase_client import verificar_nomina, insertar_nomina, actualizar_nomina_estado, obtener_nominas_parciales
 
 # Configurar logging
@@ -349,9 +348,22 @@ class BotConsorcio:
                                 except Exception as e:
                                     logger.error(f"Error subiendo nómina a Drive: {e}")
 
-                                # Extraer RUTs
-                                ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
-                                logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos")
+                                # Extraer RUTs del PDF
+                                try:
+                                    ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
+                                    logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del PDF")
+                                except:
+                                    logger.warning("PDF vacío o sin RUTs, intentando descargar como Excel...")
+                                    try:
+                                        nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina_nueva, fecha_pago_nueva)
+                                        if nomina_excel_path:
+                                            ruts_unicos = extraer_ruts_nomina_excel(nomina_excel_path)
+                                            logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel")
+                                        else:
+                                            ruts_unicos = []
+                                    except Exception as e:
+                                        logger.error(f"No se pudo extraer RUTs ni del PDF ni del Excel: {e}")
+                                        ruts_unicos = []
 
                                 # Descargar comprobantes (con deduplicación en Drive)
                                 if ruts_unicos:
@@ -690,8 +702,22 @@ class BotConsorcio:
                             logger.error(f"Error subiendo nómina a Drive: {e}")
 
                         # Extraer RUTs y guardar como parcial
-                        ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
-                        logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos")
+                        # Extraer RUTs del PDF
+                        try:
+                            ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
+                            logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del PDF")
+                        except:
+                            logger.warning("PDF vacío o sin RUTs, intentando descargar como Excel...")
+                            try:
+                                nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina, fecha_pago)
+                                if nomina_excel_path:
+                                    ruts_unicos = extraer_ruts_nomina_excel(nomina_excel_path)
+                                    logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel")
+                                else:
+                                    ruts_unicos = []
+                            except Exception as e:
+                                logger.error(f"No se pudo extraer RUTs ni del PDF ni del Excel: {e}")
+                                ruts_unicos = []
                         insertar_nomina(id_nomina, metadatos['fecha_carga'], fecha_pago, 'parcial')
 
                     except Exception as e:

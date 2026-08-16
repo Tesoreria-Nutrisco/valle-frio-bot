@@ -417,3 +417,110 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
     except Exception as e:
         logger.error(f"Error descargando nómina: {e}")
         raise
+
+
+async def paso_2_descargar_nomina_por_id_excel(page, id_nomina, fecha_busqueda=None):
+    """
+    Descarga EXCEL de nómina específica por su ID (fallback cuando PDF está vacío).
+
+    Args:
+        page: Página Playwright
+        id_nomina: ID de la nómina a descargar (ej: 1965892)
+        fecha_busqueda: Fecha para nombrar archivo
+
+    Returns:
+        Ruta del Excel descargado
+    """
+    logger.info(f"PASO 2: Descargando EXCEL de nómina ID {id_nomina}...")
+
+    try:
+        if fecha_busqueda is None:
+            fecha_busqueda = datetime.now()
+
+        # Buscar la fila con el ID específico y hacer click en dropdown
+        await page.evaluate(f"""
+            () => {{
+                const divs = document.querySelectorAll('[ng-click*="agregarOperacionDetalle"]');
+                for (let div of divs) {{
+                    if (div.textContent.trim() === '{id_nomina}') {{
+                        let fila = div.closest('[ng-repeat*="transacciones"]') ||
+                                   div.closest('.rowspan') ||
+                                   div.closest('div[ng-repeat]');
+
+                        if (fila) {{
+                            const actionBtn = fila.querySelector('button.dropdown');
+                            if (actionBtn) {{
+                                actionBtn.click();
+                                return 'clicked';
+                            }}
+                        }}
+                    }}
+                }}
+                return 'not found';
+            }}
+        """)
+        await asyncio.sleep(2)
+
+        # Click en "Descarga EXCEL" dentro del dropdown abierto
+        try:
+            logger.info(f"Esperando descarga EXCEL para nómina {id_nomina}...")
+            async with page.expect_download() as download_info:
+                excel_clicked = await page.evaluate("""
+                    () => {
+                        const links = document.querySelectorAll('a[ng-click*="getDescargaNominaOperacionExcel"]');
+                        for (let link of links) {
+                            if (link.offsetParent !== null) {
+                                link.click();
+                                return 'clicked visible link';
+                            }
+                        }
+                        return 'no visible link found';
+                    }
+                """)
+                logger.info(f"EXCEL click resultado: {excel_clicked}")
+                download = await download_info.value
+                logger.info(f"Descarga EXCEL obtenida: {download}")
+        except Exception as e:
+            logger.error(f"Error esperando/obteniendo descarga EXCEL: {e}")
+            raise
+
+        fecha_str = fecha_busqueda.strftime("%Y%m%d")
+        excel_path = NOMINAS_PATH / f"nomina_{fecha_str}_{id_nomina}.xlsx"
+
+        NOMINAS_PATH.mkdir(parents=True, exist_ok=True)
+
+        try:
+            await download.save_as(str(excel_path))
+            logger.info(f"✓ Save_as completó sin errores")
+            await asyncio.sleep(1)
+        except PermissionError:
+            excel_path = TEMP_DOWNLOAD_PATH / f"nomina_{fecha_str}_{id_nomina}_temp.xlsx"
+            await download.save_as(str(excel_path))
+            logger.warning(f"Archivo en uso, guardado como temporal: {excel_path}")
+        except Exception as e:
+            logger.error(f"Error guardando EXCEL: {e}")
+            return None
+
+        # Verificar que el archivo se guardó
+        for _ in range(5):
+            if excel_path.exists():
+                logger.info(f"✓ EXCEL de nómina {id_nomina} descargado: {excel_path}")
+                try:
+                    await page.keyboard.press("Escape")
+                    await asyncio.sleep(0.5)
+                except:
+                    pass
+                return excel_path
+            await asyncio.sleep(0.5)
+
+        logger.error(f"EXCEL no se guardó en: {excel_path}")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error descargando EXCEL de nómina {id_nomina}: {e}")
+        try:
+            await page.keyboard.press("Escape")
+            await asyncio.sleep(0.5)
+        except:
+            pass
+        return None
