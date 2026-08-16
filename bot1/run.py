@@ -131,25 +131,32 @@ class BotConsorcio:
                     logger.info("⚠ No hay cartola para subir (sin movimientos del día)")
 
                 # ========== ETAPA 1: Procesar nóminas PARCIALES ==========
-                if nominas_parciales:
+                # Filtro de optimización: solo procesar nóminas cuya fecha_pago == fecha_hoy
+                nominas_parciales_filtradas = []
+                for nom in nominas_parciales:
+                    fecha_pago = datetime.strptime(nom['fecha_pago'], "%Y-%m-%d").date() if isinstance(nom['fecha_pago'], str) else nom['fecha_pago']
+                    if fecha_pago == self.fecha_hoy.date():
+                        nominas_parciales_filtradas.append(nom)
+
+                if nominas_parciales_filtradas:
                     logger.info("=" * 80)
                     logger.info("ETAPA 1: Procesando nóminas parciales...")
                     logger.info("=" * 80)
 
                     ids_procesados_etapa1 = set()
-                    logger.info(f"ETAPA 1: Iterando sobre {len(nominas_parciales)} nóminas parciales")
+                    logger.info(f"ETAPA 1: Iterando sobre {len(nominas_parciales_filtradas)} nóminas parciales del día")
 
-                    for nom_parcial in nominas_parciales:
+                    for nom_parcial in nominas_parciales_filtradas:
                         id_nomina_parcial = nom_parcial['id_nomina']
                         logger.info(f"ETAPA 1: Procesando ID {id_nomina_parcial}")
                         fecha_carga_str = nom_parcial['fecha_carga']  # String: "2026-08-07"
                         fecha_pago_parcial = datetime.strptime(nom_parcial['fecha_pago'], "%Y-%m-%d").date() if isinstance(nom_parcial['fecha_pago'], str) else nom_parcial['fecha_pago']
 
-                        logger.info(f"\n--- Procesando parcial: {id_nomina_parcial} (carga: {fecha_carga_str}) ---")
+                        logger.info(f"\n--- Procesando parcial: {id_nomina_parcial} (carga: {fecha_carga_str}, pago: {fecha_pago_parcial}) ---")
 
                         try:
-                            # Convertir fecha_carga a datetime para filtrar en la tabla
-                            fecha_carga_obj = datetime.strptime(fecha_carga_str, "%Y-%m-%d")
+                            # Usar fecha_pago (cuando se pagó) para buscar en tabla, NO fecha_carga
+                            fecha_pago_obj = datetime.strptime(str(fecha_pago_parcial), "%Y-%m-%d")
 
                             # Navegar a Pagos > Consultar para filtrar por fecha_carga de esta nómina
                             await self.page.click("nav a:has-text('Pagos'), [role='tablist'] a:has-text('Pagos')", timeout=10000)
@@ -182,23 +189,23 @@ class BotConsorcio:
                             """)
                             await asyncio.sleep(3)
 
-                            # Abrir buscador y filtrar por fecha_carga de esta nómina
+                            # Abrir buscador y filtrar por fecha_pago de esta nómina
                             try:
                                 await self.page.click("a[ng-click*='openFilters']", timeout=5000)
                                 await asyncio.sleep(1)
                             except:
                                 pass
 
-                            fecha_carga_str_fmt = fecha_carga_obj.strftime("%d/%m/%Y")
+                            fecha_pago_str_fmt = fecha_pago_obj.strftime("%d/%m/%Y")
                             await self.page.evaluate(f"""
                                 () => {{
                                     const inputs = document.querySelectorAll('input.md-datepicker-input');
                                     if (inputs.length >= 1) {{
-                                        inputs[0].value = '{fecha_carga_str_fmt}';
+                                        inputs[0].value = '{fecha_pago_str_fmt}';
                                         inputs[0].dispatchEvent(new Event('input', {{ bubbles: true }}));
                                     }}
                                     if (inputs.length >= 2) {{
-                                        inputs[1].value = '{fecha_carga_str_fmt}';
+                                        inputs[1].value = '{fecha_pago_str_fmt}';
                                         inputs[1].dispatchEvent(new Event('input', {{ bubbles: true }}));
                                     }}
                                 }}
@@ -219,11 +226,11 @@ class BotConsorcio:
                                     timeout=5000
                                 )
                             except:
-                                logger.warning(f"ETAPA 1: SKIP - tabla no cargó para {fecha_carga_str_fmt}")
+                                logger.warning(f"ETAPA 1: SKIP - tabla no cargó para {fecha_pago_str_fmt}")
                                 continue
 
                             # Obtener IDs Y MONTOS de la tabla filtrada para esta fecha
-                            nominas_fecha = await obtener_nominas_con_montos(self.page, fecha_carga_obj)
+                            nominas_fecha = await obtener_nominas_con_montos(self.page, fecha_pago_obj)
                             ids_fecha = [nom['id_nomina'] for nom in nominas_fecha]
 
                             # Encontrar el monto de esta nómina (si existe en tabla)
@@ -233,10 +240,10 @@ class BotConsorcio:
                                     monto = nom['monto']
                                     break
 
-                            # Si la nómina NO está en tabla (porque fecha_carga es antigua)
+                            # Si la nómina NO está en tabla (porque fecha_pago es antigua)
                             # Intenta descargar por ID directamente
                             if id_nomina_parcial not in ids_fecha:
-                                logger.info(f"ETAPA 1: Nómina {id_nomina_parcial} no en tabla {fecha_carga_str_fmt}, intentando descargar por ID directo")
+                                logger.info(f"ETAPA 1: Nómina {id_nomina_parcial} no en tabla {fecha_pago_str_fmt}, intentando descargar por ID directo")
                                 # Saltear filtrado por monto e ir directo a descargar
                                 monto = None
                             else:
@@ -271,7 +278,7 @@ class BotConsorcio:
 
                             # Descargar el PDF de esta nómina
                             logger.info(f"ETAPA 1: Descargando PDF para {id_nomina_parcial}")
-                            nomina_pdf_path = await paso_2_descargar_nomina_por_id(self.page, id_nomina_parcial, fecha_carga_obj)
+                            nomina_pdf_path = await paso_2_descargar_nomina_por_id(self.page, id_nomina_parcial, fecha_pago_obj)
                             logger.info(f"ETAPA 1: Descarga completada, path={nomina_pdf_path}")
 
                             # Limpiar filtro de monto después de descargar
@@ -320,6 +327,22 @@ class BotConsorcio:
 
                                 # AHORA SÍ: está completada y fecha_pago es válida → procesar completo
                                 logger.info(f"Nómina parcial {id_nomina_parcial} AHORA está lista para completar!")
+
+                                # Subir nómina a Drive
+                                TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
+                                folder_id_nominas = get_carpeta_destino(
+                                    self.drive_service,
+                                    DRIVE_FOLDER_ID_NOMINAS,
+                                    BANCO_NOMBRE_CARPETA,
+                                    fecha_pago_nueva,
+                                    TEAM_DRIVE_ID
+                                )
+                                try:
+                                    file_name_nomina = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago_nueva.strftime('%Y%m%d')}_{id_nom_extraido}.pdf"
+                                    upload_file(self.drive_service, nomina_pdf_path, folder_id_nominas, file_name_nomina)
+                                    logger.info(f"✓ Nómina {id_nom_extraido} subida a Drive: {folder_id_nominas}")
+                                except Exception as e:
+                                    logger.error(f"Error subiendo nómina a Drive: {e}")
 
                                 # Extraer RUTs
                                 ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
@@ -400,11 +423,19 @@ class BotConsorcio:
                     logger.info("=" * 80)
                 else:
                     ids_procesados_etapa1 = set()
+                    if nominas_parciales:
+                        logger.info("=" * 80)
+                        logger.info(f"ETAPA 1: Hay {len(nominas_parciales)} nóminas parciales, pero NINGUNA del día {self.fecha_hoy.date()}")
+                        logger.info("=" * 80)
+                    else:
+                        logger.info("=" * 80)
+                        logger.info("ETAPA 1: No hay nóminas parciales pendientes")
+                        logger.info("=" * 80)
 
                 # ========== RESET: Limpiar filtros antes de PASO 2 ==========
                 # Navegar de nuevo a Estado de Firmas para resetear el estado de la página
                 # (Verificación 1: no deben quedar filtros de fecha antigua pegados)
-                if nominas_parciales:
+                if nominas_parciales_filtradas:
                     logger.info("Reseteando estado de la página después de ETAPA 1...")
                     logger.info("⏸️  Pausa de 30s para recuperación del navegador después de procesar muchos comprobantes...")
                     await asyncio.sleep(30)  # Pausa larga para que navegador se recupere
@@ -637,6 +668,22 @@ class BotConsorcio:
                             insertar_nomina(id_nomina, metadatos['fecha_carga'], fecha_pago, 'parcial')
                             continue
 
+                        # Subir nómina a Drive
+                        TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
+                        folder_id_nominas = get_carpeta_destino(
+                            self.drive_service,
+                            DRIVE_FOLDER_ID_NOMINAS,
+                            BANCO_NOMBRE_CARPETA,
+                            fecha_pago,
+                            TEAM_DRIVE_ID
+                        )
+                        try:
+                            file_name_nomina = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago.strftime('%Y%m%d')}_{id_nomina}.pdf"
+                            upload_file(self.drive_service, nomina_pdf_path, folder_id_nominas, file_name_nomina)
+                            logger.info(f"✓ Nómina {id_nomina} subida a Drive: {folder_id_nominas}")
+                        except Exception as e:
+                            logger.error(f"Error subiendo nómina a Drive: {e}")
+
                         # Extraer RUTs y guardar como parcial
                         ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
                         logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos")
@@ -719,7 +766,11 @@ class BotConsorcio:
                                     actualizar_nomina_estado(id_nomina, 'completo', ruta_drive=folder_id_comprobantes)
                                     logger.info(f"Nómina {id_nomina} marcada como completa en Drive: {folder_id_comprobantes}")
                             else:
-                                logger.warning("No se descargaron comprobantes")
+                                # No se descargaron comprobantes - mantener como parcial para reintentar en próximo horario
+                                logger.warning(f"No se descargaron comprobantes para nómina {id_nomina}, se mantiene como parcial")
+                                if id_nomina:
+                                    actualizar_nomina_estado(id_nomina, 'parcial', ruta_drive=folder_id_comprobantes)
+                                    logger.info(f"Nómina {id_nomina} mantiene estado parcial (sin comprobantes aún)")
                         except Exception as e:
                             logger.warning(f"PASO 3 (Comprobantes) falló: {e}")
                             # Dejar en 'parcial' para reintentar en próxima corrida

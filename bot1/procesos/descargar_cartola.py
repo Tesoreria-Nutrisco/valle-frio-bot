@@ -53,9 +53,8 @@ async def paso_1_descargar_cartola(page, fecha_busqueda=None):
         await asyncio.sleep(1)
         logger.info("Formulario de búsqueda cargado")
 
-        # NO cambiar fechas - descargar TODO el reporte sin filtrar por fecha
-        # El banco devuelve sus "últimos movimientos" por defecto (típicamente últimos 30-90 días)
-        logger.info("Descargando reporte completo sin filtro de fecha")
+        # Cartola usa rango de fechas dinámico por defecto - sin filtro adicional
+        logger.info(f"Cartola para fecha de búsqueda: {fecha_busqueda.strftime('%d/%m/%Y')}")
 
         # Click en "Buscar"
         await page.click("button:has-text('Buscar')", timeout=5000)
