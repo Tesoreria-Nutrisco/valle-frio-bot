@@ -461,31 +461,38 @@ async def paso_2_descargar_nomina_por_id_excel(page, id_nomina, fecha_busqueda=N
         """)
         await asyncio.sleep(2)
 
-        # Click en "Descarga EXCEL" dentro del dropdown abierto
+        # Click en "Descarga Excel" dentro del dropdown abierto
         try:
             logger.info(f"Esperando descarga EXCEL para nómina {id_nomina}...")
             async with page.expect_download() as download_info:
                 excel_clicked = await page.evaluate("""
                     () => {
-                        // Intentar primero por ng-click
+                        // Intentar primero por ng-click con Excel
                         let links = document.querySelectorAll('a[ng-click*="getDescargaNominaOperacionExcel"]');
                         for (let link of links) {
                             if (link.offsetParent !== null) {
                                 link.click();
-                                return 'clicked by ng-click';
+                                return 'clicked by ng-click Excel';
                             }
                         }
 
-                        // Fallback: buscar por texto "EXCEL"
-                        links = document.querySelectorAll('a');
+                        // Fallback: buscar por texto "Excel" (case-insensitive)
+                        links = document.querySelectorAll('a, span');
                         for (let link of links) {
-                            if (link.textContent.includes('EXCEL') && link.offsetParent !== null) {
-                                link.click();
-                                return 'clicked by text EXCEL';
+                            const text = link.textContent.toLowerCase();
+                            if ((text.includes('excel') || text.includes('descarga')) &&
+                                link.textContent.toLowerCase().includes('excel') &&
+                                link.offsetParent !== null) {
+                                // Si es span, buscar el link padre
+                                let clickTarget = link.tagName === 'A' ? link : link.closest('a');
+                                if (clickTarget) {
+                                    clickTarget.click();
+                                    return 'clicked by text Excel';
+                                }
                             }
                         }
 
-                        return 'no link found';
+                        return 'no Excel link found';
                     }
                 """)
                 logger.info(f"EXCEL click resultado: {excel_clicked}")
