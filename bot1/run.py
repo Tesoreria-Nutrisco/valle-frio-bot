@@ -355,7 +355,7 @@ class BotConsorcio:
                                 except:
                                     logger.warning("PDF vacío o sin RUTs, intentando descargar como Excel...")
                                     try:
-                                        nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina_nueva, fecha_pago_nueva)
+                                        nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina_parcial, fecha_pago_obj)
                                         if nomina_excel_path:
                                             ruts_unicos = extraer_ruts_nomina_excel(nomina_excel_path)
                                             logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel")
