@@ -17,7 +17,7 @@ Pasos:
 import asyncio
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from playwright.async_api import async_playwright
@@ -155,8 +155,13 @@ class BotConsorcio:
                         logger.info(f"\n--- Procesando parcial: {id_nomina_parcial} (carga: {fecha_carga_str}, pago: {fecha_pago_parcial}) ---")
 
                         try:
-                            # Usar fecha_pago (cuando se pagó) para buscar en tabla, NO fecha_carga
+                            # La nómina aparece en la tabla del banco el día SIGUIENTE a su carga
+                            # No usar fecha_pago, usar fecha_carga + 1 día
+                            fecha_carga_obj = datetime.strptime(str(fecha_carga_str), "%Y-%m-%d")
+                            fecha_busqueda_tabla = fecha_carga_obj + timedelta(days=1)
                             fecha_pago_obj = datetime.strptime(str(fecha_pago_parcial), "%Y-%m-%d")
+
+                            logger.info(f"Buscando en tabla con fecha: {fecha_busqueda_tabla.strftime('%d/%m/%Y')} (carga+1), fecha_pago real: {fecha_pago_obj.strftime('%d/%m/%Y')}")
 
                             # Navegar a Pagos > Consultar para filtrar por fecha_carga de esta nómina
                             await self.page.click("nav a:has-text('Pagos'), [role='tablist'] a:has-text('Pagos')", timeout=10000)
@@ -189,23 +194,23 @@ class BotConsorcio:
                             """)
                             await asyncio.sleep(3)
 
-                            # Abrir buscador y filtrar por fecha_pago de esta nómina
+                            # Abrir buscador y filtrar por fecha_carga+1 de esta nómina
                             try:
                                 await self.page.click("a[ng-click*='openFilters']", timeout=5000)
                                 await asyncio.sleep(1)
                             except:
                                 pass
 
-                            fecha_pago_str_fmt = fecha_pago_obj.strftime("%d/%m/%Y")
+                            fecha_busqueda_str_fmt = fecha_busqueda_tabla.strftime("%d/%m/%Y")
                             await self.page.evaluate(f"""
                                 () => {{
                                     const inputs = document.querySelectorAll('input.md-datepicker-input');
                                     if (inputs.length >= 1) {{
-                                        inputs[0].value = '{fecha_pago_str_fmt}';
+                                        inputs[0].value = '{fecha_busqueda_str_fmt}';
                                         inputs[0].dispatchEvent(new Event('input', {{ bubbles: true }}));
                                     }}
                                     if (inputs.length >= 2) {{
-                                        inputs[1].value = '{fecha_pago_str_fmt}';
+                                        inputs[1].value = '{fecha_busqueda_str_fmt}';
                                         inputs[1].dispatchEvent(new Event('input', {{ bubbles: true }}));
                                     }}
                                 }}
