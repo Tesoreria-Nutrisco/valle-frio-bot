@@ -148,7 +148,7 @@ def extraer_ruts_nomina(pdf_path):
             if len(pdf.pages) > 0:
                 text_pag1 = pdf.pages[0].extract_text()
                 if text_pag1 and "RUT cliente" in text_pag1:
-                    rut_pattern = r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]|\d{7,8}-[\dkK]|\d{8}[\dkK]"
+                    rut_pattern = r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]|\d{7,8}-[\dkK]|[1-9]\d{0,7}[\dkK]"
                     matches = re.findall(rut_pattern, text_pag1)
                     if matches:
                         # El primer RUT después de "RUT cliente" es el cliente
@@ -177,7 +177,7 @@ def extraer_ruts_nomina(pdf_path):
                     logger.info(f"Procesando página {page_num} (detalle de nómina)")
 
                     # Buscar patrones de RUT
-                    rut_pattern = r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]|\d{7,8}-[\dkK]|\d{8}[\dkK]"
+                    rut_pattern = r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]|\d{7,8}-[\dkK]|[1-9]\d{0,7}[\dkK]"
                     matches = re.findall(rut_pattern, text)
 
                     logger.info(f"Encontrados {len(matches)} RUTs en página {page_num}")
@@ -245,7 +245,7 @@ def extraer_ruts_nomina_excel(excel_path):
     logger.info(f"Extrayendo RUTs de Excel: {excel_path}")
 
     ruts = set()
-    rut_pattern = r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]|\d{7,8}-[\dkK]|\d{8}[\dkK]"
+    rut_pattern = r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]|\d{7,8}-[\dkK]|[1-9]\d{0,7}[\dkK]"
 
     # Intentar primero con openpyxl (.xlsx moderno)
     try:
