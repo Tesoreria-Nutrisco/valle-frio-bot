@@ -218,7 +218,7 @@ def extraer_ruts_nomina_excel(excel_path):
     """
     Extrae RUTs de beneficiarios de un archivo Excel de nómina.
 
-    Busca la columna "RUT" en la tabla de detalles y extrae todos los RUTs únicos.
+    Busca la columna "Rut Beneficiario" en la tabla de detalles y extrae todos los RUTs únicos.
 
     Args:
         excel_path: Ruta al archivo .xlsx
@@ -243,47 +243,70 @@ def extraer_ruts_nomina_excel(excel_path):
         wb = openpyxl.load_workbook(str(excel_path))
         ws = wb.active
 
+        logger.info(f"Hojas disponibles: {wb.sheetnames}")
+        logger.info(f"Usando hoja: {ws.title}")
+
         # Buscar encabezados y la columna "Rut Beneficiario"
         headers = []
         rut_column = None
+        header_row = None
 
-        for row in ws.iter_rows(min_row=1, max_row=20, values_only=True):
+        # Escanear primeras 30 filas buscando encabezados
+        for row_num, row in enumerate(ws.iter_rows(min_row=1, max_row=30, values_only=False), 1):
+            row_values = [cell.value for cell in row]
+
+            # Log de primeras filas para debuggear
+            if row_num <= 5:
+                logger.info(f"Fila {row_num}: {row_values}")
+
             # Buscar fila con encabezados
-            if any(cell and "rut" in str(cell).lower() for cell in row if cell):
-                headers = row
+            if any(cell and "rut" in str(cell).lower() for cell in row_values if cell):
+                headers = row_values
+                header_row = row_num
+                logger.info(f"Encabezados encontrados en fila {row_num}: {headers}")
+
                 for idx, header in enumerate(headers):
-                    if header and "beneficiario" in str(header).lower() and "rut" in str(header).lower():
+                    if header and "rut" in str(header).lower():
                         rut_column = idx
-                        logger.info(f"Columna 'Rut Beneficiario' encontrada en índice {idx}")
+                        logger.info(f"Columna RUT en índice {idx}: '{header}'")
                         break
-                    elif header and "rut" in str(header).lower():
-                        rut_column = idx
-                        logger.info(f"Columna con RUT encontrada en índice {idx}: {header}")
                 break
 
         if rut_column is None:
-            logger.warning("No se encontró columna RUT en Excel, buscando por patrón")
+            logger.warning("No se encontró columna RUT en Excel, buscando por patrón en todas las celdas")
             # Fallback: buscar cualquier celda con patrón de RUT
             for row in ws.iter_rows(values_only=True):
                 for cell in row:
-                    if cell and isinstance(cell, str):
-                        match = re.search(rut_pattern, str(cell))
+                    if cell:
+                        cell_str = str(cell).strip()
+                        match = re.search(rut_pattern, cell_str)
                         if match:
                             ruts.add(match.group())
+                            logger.info(f"RUT encontrado por patrón: {match.group()}")
         else:
             # Extraer RUTs de la columna encontrada
-            for row in ws.iter_rows(min_row=len(headers)+2, values_only=True):
+            start_row = header_row + 1 if header_row else len(headers) + 2
+            logger.info(f"Extrayendo RUTs desde fila {start_row}, columna {rut_column}")
+
+            row_count = 0
+            for row in ws.iter_rows(min_row=start_row, values_only=True):
+                row_count += 1
                 if row and rut_column < len(row):
                     cell_value = row[rut_column]
-                    if cell_value and isinstance(cell_value, str):
-                        match = re.search(rut_pattern, cell_value)
+                    if cell_value:
+                        cell_str = str(cell_value).strip()
+                        logger.info(f"Fila {start_row + row_count - 1}, col {rut_column}: '{cell_str}'")
+
+                        match = re.search(rut_pattern, cell_str)
                         if match:
-                            ruts.add(match.group())
+                            rut_encontrado = match.group()
+                            ruts.add(rut_encontrado)
+                            logger.info(f"  → RUT extraído: {rut_encontrado}")
 
         wb.close()
 
         ruts_list = sorted(list(ruts))
-        logger.info(f"Se extrajeron {len(ruts_list)} RUTs de Excel: {ruts_list}")
+        logger.info(f"Se extrajeron {len(ruts_list)} RUTs únicos de Excel: {ruts_list}")
 
         if not ruts_list:
             raise ValueError("No se extrajeron RUTs del Excel de nómina")
@@ -291,5 +314,5 @@ def extraer_ruts_nomina_excel(excel_path):
         return ruts_list
 
     except Exception as e:
-        logger.error(f"Error extrayendo RUTs del Excel: {e}")
+        logger.error(f"Error extrayendo RUTs del Excel: {e}", exc_info=True)
         raise
