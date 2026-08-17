@@ -154,13 +154,13 @@ class BotConsorcio:
                         logger.info(f"\n--- Procesando parcial: {id_nomina_parcial} (carga: {fecha_carga_str}, pago: {fecha_pago_parcial}) ---")
 
                         try:
-                            # La nómina aparece en la tabla del banco el día SIGUIENTE a su carga
-                            # No usar fecha_pago, usar fecha_carga + 1 día
+                            # Buscar por fecha_carga (fecha de ingreso de la nómina)
+                            # No usar fecha_pago, usar fecha_carga
                             fecha_carga_obj = datetime.strptime(str(fecha_carga_str), "%Y-%m-%d")
-                            fecha_busqueda_tabla = fecha_carga_obj + timedelta(days=1)
+                            fecha_busqueda_tabla = fecha_carga_obj
                             fecha_pago_obj = datetime.strptime(str(fecha_pago_parcial), "%Y-%m-%d")
 
-                            logger.info(f"Buscando en tabla con fecha: {fecha_busqueda_tabla.strftime('%d/%m/%Y')} (carga+1), fecha_pago real: {fecha_pago_obj.strftime('%d/%m/%Y')}")
+                            logger.info(f"Buscando en tabla con fecha: {fecha_busqueda_tabla.strftime('%d/%m/%Y')} (fecha ingreso), fecha_pago real: {fecha_pago_obj.strftime('%d/%m/%Y')}")
 
                             # Navegar a Pagos > Consultar para filtrar por fecha_carga de esta nómina
                             await self.page.click("nav a:has-text('Pagos'), [role='tablist'] a:has-text('Pagos')", timeout=10000)
