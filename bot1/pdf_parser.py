@@ -218,19 +218,23 @@ def extraer_ruts_nomina_excel(excel_path):
     """
     Extrae RUTs de beneficiarios de Excel de nómina (formato CartolaEnLinea).
 
+    Maneja dos formatos:
+    - .xlsx moderno (openpyxl)
+    - .xls antiguo OLE (xlrd) — el banco descarga como .xlsx pero es realmente .xls antiguo
+
     Estructura:
     - Hoja: "CartolaEnLinea"
-    - Bloque cabecera: filas 11-16 (0-indexed en openpyxl = 12-17)
-    - Tabla detalle: encabezados en fila 19 (0-indexed = 20), datos desde fila 20 (0-indexed = 21)
+    - Tabla detalle: encabezados en fila 20, datos desde fila 21
     - Columna RUT: "Rut Beneficiario"
 
     Args:
-        excel_path: Ruta al archivo .xlsx
+        excel_path: Ruta al archivo
 
     Returns:
         Lista de RUTs únicos de beneficiarios
     """
     import openpyxl
+    import xlrd
 
     excel_path = Path(excel_path)
 
@@ -243,10 +247,11 @@ def extraer_ruts_nomina_excel(excel_path):
     ruts = set()
     rut_pattern = r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]|\d{7,8}-[\dkK]"
 
+    # Intentar primero con openpyxl (.xlsx moderno)
     try:
+        logger.info("Intentando leer con openpyxl (.xlsx moderno)...")
         wb = openpyxl.load_workbook(str(excel_path))
 
-        # Buscar hoja "CartolaEnLinea" (puede estar con variaciones de nombre)
         hoja_nombre = None
         for sheet_name in wb.sheetnames:
             if "cartola" in sheet_name.lower() or "nomina" in sheet_name.lower():
@@ -254,15 +259,13 @@ def extraer_ruts_nomina_excel(excel_path):
                 break
 
         if not hoja_nombre:
-            # Fallback: usar primera hoja si no encuentra "CartolaEnLinea"
             hoja_nombre = wb.sheetnames[0]
             logger.warning(f"Hoja 'CartolaEnLinea' no encontrada, usando: {hoja_nombre}")
 
         ws = wb[hoja_nombre]
-        logger.info(f"Usando hoja: {hoja_nombre}")
+        logger.info(f"Usando hoja con openpyxl: {hoja_nombre}")
 
-        # Leer encabezados de la tabla de detalle (fila 20 en Excel = fila 19 en 0-indexed, pero openpyxl es 1-indexed)
-        # En openpyxl: fila 20 en Excel = fila 20
+        # Leer encabezados de fila 20
         header_row_num = 20
         header_row = list(ws.iter_rows(min_row=header_row_num, max_row=header_row_num, values_only=True))[0]
         logger.info(f"Encabezados (fila {header_row_num}): {header_row}")
@@ -272,41 +275,90 @@ def extraer_ruts_nomina_excel(excel_path):
         for idx, header in enumerate(header_row):
             if header and "rut" in str(header).lower() and "beneficiario" in str(header).lower():
                 rut_column = idx
-                logger.info(f"Columna 'Rut Beneficiario' encontrada en índice {idx}")
+                logger.info(f"Columna 'Rut Beneficiario' en índice {idx}")
                 break
 
         if rut_column is None:
-            logger.error("Columna 'Rut Beneficiario' no encontrada en Excel")
-            raise ValueError("No se encontró columna 'Rut Beneficiario' en el Excel")
+            raise ValueError("No se encontró columna 'Rut Beneficiario'")
 
-        # Extraer RUTs desde fila 21 en adelante (datos comienzan fila 21 en Excel = fila 21 en openpyxl 1-indexed)
+        # Extraer RUTs desde fila 21
         data_start_row = 21
-        logger.info(f"Extrayendo RUTs desde fila {data_start_row}, columna {rut_column}")
-
         for row_num, row in enumerate(ws.iter_rows(min_row=data_start_row, values_only=True), start=data_start_row):
             if not row or not row[rut_column]:
                 continue
 
-            cell_value = row[rut_column]
-            cell_str = str(cell_value).strip()
-
+            cell_str = str(row[rut_column]).strip()
             if cell_str and cell_str.lower() != "rut beneficiario":
                 match = re.search(rut_pattern, cell_str)
                 if match:
                     rut_encontrado = match.group()
                     ruts.add(rut_encontrado)
-                    logger.info(f"Fila {row_num}: RUT extraído = {rut_encontrado}")
+                    logger.info(f"Fila {row_num}: {rut_encontrado}")
 
         wb.close()
 
-        ruts_list = sorted(list(ruts))
-        logger.info(f"Se extrajeron {len(ruts_list)} RUTs únicos de Excel: {ruts_list}")
-
-        if not ruts_list:
-            raise ValueError("No se extrajeron RUTs del Excel de nómina")
-
-        return ruts_list
-
     except Exception as e:
-        logger.error(f"Error extrayendo RUTs del Excel: {e}", exc_info=True)
-        raise
+        if "File contains no valid workbook part" in str(e):
+            logger.warning(f"openpyxl falló: archivo es .xls antiguo OLE. Intentando con xlrd...")
+
+            # Fallback: leer con xlrd (.xls antiguo)
+            try:
+                wb = xlrd.open_workbook(str(excel_path))
+
+                # Buscar hoja "CartolaEnLinea"
+                hoja_nombre = None
+                for sheet_name in wb.sheet_names():
+                    if "cartola" in sheet_name.lower() or "nomina" in sheet_name.lower():
+                        hoja_nombre = sheet_name
+                        break
+
+                if not hoja_nombre:
+                    hoja_nombre = wb.sheet_names()[0]
+                    logger.warning(f"Hoja 'CartolaEnLinea' no encontrada, usando: {hoja_nombre}")
+
+                ws = wb.sheet_by_name(hoja_nombre)
+                logger.info(f"Usando hoja con xlrd: {hoja_nombre}")
+
+                # Leer encabezados de fila 20 (0-indexed = 19)
+                header_row_idx = 19
+                header_row = ws.row_values(header_row_idx)
+                logger.info(f"Encabezados (fila {header_row_idx + 1}): {header_row}")
+
+                # Buscar columna "Rut Beneficiario"
+                rut_column = None
+                for idx, header in enumerate(header_row):
+                    if header and "rut" in str(header).lower() and "beneficiario" in str(header).lower():
+                        rut_column = idx
+                        logger.info(f"Columna 'Rut Beneficiario' en índice {idx}")
+                        break
+
+                if rut_column is None:
+                    raise ValueError("No se encontró columna 'Rut Beneficiario'")
+
+                # Extraer RUTs desde fila 21 (0-indexed = 20)
+                data_start_row = 20
+                for row_idx in range(data_start_row, ws.nrows):
+                    cell_value = ws.cell_value(row_idx, rut_column)
+                    if cell_value:
+                        cell_str = str(cell_value).strip()
+                        if cell_str and cell_str.lower() != "rut beneficiario":
+                            match = re.search(rut_pattern, cell_str)
+                            if match:
+                                rut_encontrado = match.group()
+                                ruts.add(rut_encontrado)
+                                logger.info(f"Fila {row_idx + 1}: {rut_encontrado}")
+
+            except Exception as e2:
+                logger.error(f"Error con xlrd: {e2}", exc_info=True)
+                raise
+        else:
+            logger.error(f"Error inesperado: {e}", exc_info=True)
+            raise
+
+    ruts_list = sorted(list(ruts))
+    logger.info(f"Se extrajeron {len(ruts_list)} RUTs únicos: {ruts_list}")
+
+    if not ruts_list:
+        raise ValueError("No se extrajeron RUTs del Excel de nómina")
+
+    return ruts_list
