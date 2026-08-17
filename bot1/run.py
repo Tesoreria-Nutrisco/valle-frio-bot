@@ -230,7 +230,7 @@ class BotConsorcio:
                                     timeout=5000
                                 )
                             except:
-                                logger.warning(f"ETAPA 1: SKIP - tabla no cargó para {fecha_pago_str_fmt}")
+                                logger.warning(f"ETAPA 1: SKIP - tabla no cargó para {fecha_busqueda_str_fmt}")
                                 continue
 
                             # Obtener IDs Y MONTOS de la tabla filtrada para esta fecha
@@ -247,7 +247,7 @@ class BotConsorcio:
                             # Si la nómina NO está en tabla (porque fecha_pago es antigua)
                             # Intenta descargar por ID directamente
                             if id_nomina_parcial not in ids_fecha:
-                                logger.info(f"ETAPA 1: Nómina {id_nomina_parcial} no en tabla {fecha_pago_str_fmt}, intentando descargar por ID directo")
+                                logger.info(f"ETAPA 1: Nómina {id_nomina_parcial} no en tabla {fecha_busqueda_str_fmt}, intentando descargar por ID directo")
                                 # Saltear filtrado por monto e ir directo a descargar
                                 monto = None
                             else:
