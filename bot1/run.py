@@ -359,6 +359,22 @@ class BotConsorcio:
                                         if nomina_excel_path:
                                             ruts_unicos = extraer_ruts_nomina_excel(nomina_excel_path)
                                             logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel")
+
+                                            # Subir Excel a Drive (mismo lugar que nóminas)
+                                            try:
+                                                TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
+                                                folder_id_nominas = get_carpeta_destino(
+                                                    self.drive_service,
+                                                    DRIVE_FOLDER_ID_NOMINAS,
+                                                    BANCO_NOMBRE_CARPETA,
+                                                    fecha_pago_obj.date() if hasattr(fecha_pago_obj, 'date') else fecha_pago_obj,
+                                                    TEAM_DRIVE_ID
+                                                )
+                                                file_name_excel = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago_obj.strftime('%Y%m%d')}_{id_nomina_parcial}.xlsx"
+                                                upload_file(self.drive_service, nomina_excel_path, folder_id_nominas, file_name_excel)
+                                                logger.info(f"✓ Excel de nómina {id_nomina_parcial} subido a Drive: {folder_id_nominas}")
+                                            except Exception as e:
+                                                logger.warning(f"No se pudo subir Excel a Drive: {e}")
                                         else:
                                             ruts_unicos = []
                                     except Exception as e:
@@ -713,6 +729,14 @@ class BotConsorcio:
                                 if nomina_excel_path:
                                     ruts_unicos = extraer_ruts_nomina_excel(nomina_excel_path)
                                     logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel")
+
+                                    # Subir Excel a Drive (mismo lugar que nóminas)
+                                    try:
+                                        file_name_excel = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago.strftime('%Y%m%d')}_{id_nomina}.xlsx"
+                                        upload_file(self.drive_service, nomina_excel_path, folder_id_nominas, file_name_excel)
+                                        logger.info(f"✓ Excel de nómina {id_nomina} subido a Drive: {folder_id_nominas}")
+                                    except Exception as e:
+                                        logger.warning(f"No se pudo subir Excel a Drive: {e}")
                                 else:
                                     ruts_unicos = []
                             except Exception as e:
