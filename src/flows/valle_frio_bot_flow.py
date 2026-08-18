@@ -80,7 +80,7 @@ def _load_prefect_secrets():
 		try:
 			secret = Secret.load(block_name)
 			valor = secret.get()
-			os.environ[env_var] = valor
+			os.environ[env_var] = str(valor)  # Convertir a string
 			print(f"  ✓ {block_name:40} cargado")
 		except Exception as e:
 			print(f"  ✗ {block_name:40} ERROR: {e}")
