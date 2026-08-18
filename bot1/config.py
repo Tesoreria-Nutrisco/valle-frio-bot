@@ -35,12 +35,13 @@ NOMINAS_PATH.mkdir(parents=True, exist_ok=True)
 CARTOLAS_PATH.mkdir(parents=True, exist_ok=True)
 LOG_PATH.mkdir(parents=True, exist_ok=True)
 
-# Validaciones
-if not CREDENTIALS_PATH or not Path(CREDENTIALS_PATH).exists():
-    raise FileNotFoundError(f"Credenciales de Google no encontradas en {CREDENTIALS_PATH}")
-
-if not BANCO_USUARIO or not BANCO_CLAVE:
-    raise ValueError("BANCO_USUARIO y BANCO_CLAVE son requeridos en .env")
-
-if not DRIVE_FOLDER_ID_CARTOLAS or not DRIVE_FOLDER_ID_COMPROBANTES or not DRIVE_FOLDER_ID_NOMINAS:
-    raise ValueError("IDs de carpetas de Drive (cartolas, comprobantes, nóminas) son requeridos en .env")
+# Validaciones (comentadas para permitir import en Prefect Cloud)
+# Las credenciales se verifican en runtime en el worker del Lenovo
+# if not CREDENTIALS_PATH or not Path(CREDENTIALS_PATH).exists():
+#     raise FileNotFoundError(f"Credenciales de Google no encontradas en {CREDENTIALS_PATH}")
+#
+# if not BANCO_USUARIO or not BANCO_CLAVE:
+#     raise ValueError("BANCO_USUARIO y BANCO_CLAVE son requeridos en .env")
+#
+# if not DRIVE_FOLDER_ID_CARTOLAS or not DRIVE_FOLDER_ID_COMPROBANTES or not DRIVE_FOLDER_ID_NOMINAS:
+#     raise ValueError("IDs de carpetas de Drive (cartolas, comprobantes, nóminas) son requeridos en .env")
