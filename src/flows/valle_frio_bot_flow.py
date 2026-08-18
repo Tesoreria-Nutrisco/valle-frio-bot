@@ -19,6 +19,7 @@ from typing import Optional, Set, List, Tuple
 from dotenv import load_dotenv
 from prefect import flow, task, get_run_logger
 from prefect.blocks.system import Secret
+from prefect.cache_policies import NO_CACHE
 from prefect.utilities.asyncutils import asynccontextmanager
 
 # Cargar .env primero
@@ -100,7 +101,7 @@ def task_obtener_nominas_parciales() -> List[dict]:
     return nominas_parciales
 
 
-@task(name="task_descargar_cartola_step")
+@task(name="task_descargar_cartola_step", cache_policy=NO_CACHE)
 async def task_descargar_cartola_step(page, fecha_hoy) -> Optional[Path]:
     """PASO 1: Descargar cartola"""
     logger = get_run_logger()
@@ -165,7 +166,7 @@ def task_subir_cartola_step(cartola_path: Optional[Path], filas_nuevas: List[dic
         return False
 
 
-@task(name="task_procesar_etapa1")
+@task(name="task_procesar_etapa1", cache_policy=NO_CACHE)
 async def task_procesar_etapa1(page, nominas_parciales: List[dict], fecha_hoy,
                               drive_service, browser) -> Set[str]:
     """
@@ -457,7 +458,7 @@ async def task_procesar_etapa1(page, nominas_parciales: List[dict], fecha_hoy,
     return ids_procesados_etapa1
 
 
-@task(name="task_procesar_paso2")
+@task(name="task_procesar_paso2", cache_policy=NO_CACHE)
 async def task_procesar_paso2(page, fecha_hoy, drive_service, browser,
                              ids_procesados_etapa1: Set[str]) -> List[Tuple[str, Optional[Path]]]:
     """
@@ -790,7 +791,7 @@ async def valle_frio_bot_flow(fecha_testing: Optional[str] = None):
         from playwright.async_api import async_playwright
         async_pw = async_playwright()
         p = await async_pw.__aenter__()
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         page.set_default_timeout(30000)
         drive_service = get_drive_service()
