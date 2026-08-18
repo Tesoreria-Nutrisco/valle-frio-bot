@@ -28,12 +28,15 @@ def _ensure_dependencies():
 	"""Instala dependencias faltantes automáticamente en Prefect workers."""
 	required_packages = {
 		"pdfplumber": "pdfplumber",
+		"pypdf": "pypdf",
 		"playwright": "playwright",
 		"google-api-python-client": "googleapiclient",
 		"google-auth": "google.auth",
 		"supabase": "supabase",
 		"openpyxl": "openpyxl",
-		"pandas": "pandas"
+		"pandas": "pandas",
+		"xlrd": "xlrd",
+		"python-dotenv": "dotenv"
 	}
 
 	missing = []
