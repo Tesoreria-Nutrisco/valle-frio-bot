@@ -12,6 +12,7 @@ Convierte la lógica de bot1/run.py en un Prefect flow con:
 import asyncio
 import os
 import sys
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Set, List, Tuple
@@ -21,6 +22,36 @@ from prefect import flow, task, get_run_logger
 from prefect.blocks.system import Secret
 from prefect.cache_policies import NO_CACHE
 from prefect.utilities.asyncutils import asynccontextmanager
+
+
+def _ensure_dependencies():
+	"""Instala dependencias faltantes automáticamente en Prefect workers."""
+	required_packages = {
+		"pdfplumber": "pdfplumber",
+		"playwright": "playwright",
+		"google-api-python-client": "googleapiclient",
+		"google-auth": "google.auth",
+		"supabase": "supabase",
+		"openpyxl": "openpyxl",
+		"pandas": "pandas"
+	}
+
+	missing = []
+	for pkg_name, import_name in required_packages.items():
+		try:
+			__import__(import_name.split(".")[0])
+		except ImportError:
+			missing.append(pkg_name)
+
+	if missing:
+		print(f"⚠ Instalando paquetes faltantes: {', '.join(missing)}")
+		subprocess.check_call(
+			[sys.executable, "-m", "pip", "install", "-q"] + missing,
+			stderr=subprocess.STDOUT
+		)
+
+
+_ensure_dependencies()
 
 # Cargar .env primero
 load_dotenv()

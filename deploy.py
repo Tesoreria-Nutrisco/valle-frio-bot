@@ -26,6 +26,21 @@ except ImportError as e:
     print("Instala con: pip install prefect==3.7.5")
     sys.exit(1)
 
+# Dependencias del proyecto
+DEPENDENCIES = [
+    "playwright==1.40.0",
+    "google-api-python-client==2.100.0",
+    "google-auth==2.28.0",
+    "python-dotenv==1.0.0",
+    "pypdf==4.0.1",
+    "pdfplumber==0.10.3",
+    "supabase==2.31.0",
+    "openpyxl==3.1.5",
+    "pandas==2.2.0",
+    "xlrd==2.0.1",
+    "prefect==3.7.5",
+]
+
 
 def deploy():
     """Despliega el Valle Frío Bot Flow usando Prefect Cloud."""
@@ -52,14 +67,12 @@ def deploy():
         deployment = flow.from_source(
             source="https://github.com/javieramunozc/valle-frio-bot.git",
             entrypoint="src/flows/valle_frio_bot_flow.py:valle_frio_bot_flow",
-            ignore_cache=True,  # No cachear, siempre descargar la última versión
         ).deploy(
             name="valle-frio-bot",
             description="Bot de descarga de cartolas y comprobantes - Banco Consorcio",
             work_pool_name="lenovo-rpa-pool",
             cron="0 8,12,18 * * 1-5",
             tags=["valle-frio", "consorcio"],
-            is_schedule_active=True,
         )
 
         print()
