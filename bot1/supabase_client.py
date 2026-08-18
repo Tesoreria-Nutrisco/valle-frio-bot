@@ -22,21 +22,29 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_SCHEMA = "valle_frio_bot"
 
-if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    raise ValueError("Faltan credenciales: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env")
+# Validaciones comentadas para permitir import en Prefect Cloud
+# Las credenciales se verifican en runtime en el worker del Lenovo
+# if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+#     raise ValueError("Faltan credenciales: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env")
 
-# Crear cliente
-_client: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+# Cliente lazy - se inicializa en _get_client()
+_client: Client = None
 
-# Configurar headers globales para SELECT
-_client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
-
-logger.info(f"Cliente Supabase inicializado con schema: {SUPABASE_SCHEMA}")
+def _get_client() -> Client:
+    """Inicializa el cliente Supabase de forma lazy (cuando se usa, no al importar)."""
+    global _client
+    if _client is None:
+        if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+            raise ValueError("Faltan credenciales: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env")
+        _client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        _client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
+        logger.info(f"Cliente Supabase inicializado con schema: {SUPABASE_SCHEMA}")
+    return _client
 
 
 def get_client() -> Client:
     """Retorna el cliente de Supabase con schema valle-frio-bot."""
-    return _client
+    return _get_client()
 
 
 def verificar_cartola_transaccion(num_transaccion: str) -> bool:
@@ -50,9 +58,9 @@ def verificar_cartola_transaccion(num_transaccion: str) -> bool:
         True si ya existe, False si es nueva
     """
     try:
-        # Agregar header antes de la operación
-        _client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
-        result = _client.table("bot1_cartola_transacciones") \
+        client = _get_client()
+        client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
+        result = client.table("bot1_cartola_transacciones") \
             .select("num_transaccion") \
             .eq("num_transaccion", num_transaccion) \
             .execute()
@@ -74,7 +82,8 @@ def insertar_cartola_transaccion(num_transaccion: str, fecha_contable, monto: fl
         True si se insertó exitosamente
     """
     try:
-        _client.rpc(
+        client = _get_client()
+        client.rpc(
             "insertar_cartola",
             {
                 "p_num_transaccion": num_transaccion,
@@ -98,8 +107,9 @@ def verificar_nomina(id_nomina: str) -> dict | None:
         Registro de la nómina si existe, None si es nueva
     """
     try:
-        _client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
-        result = _client.table("bot1_nominas_descargadas") \
+        client = _get_client()
+        client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
+        result = client.table("bot1_nominas_descargadas") \
             .select("*") \
             .eq("id_nomina", id_nomina) \
             .execute()
@@ -124,7 +134,8 @@ def insertar_nomina(id_nomina: str, fecha_carga, fecha_pago, estado: str = "parc
         True si se insertó exitosamente
     """
     try:
-        _client.rpc(
+        client = _get_client()
+        client.rpc(
             "insertar_nomina",
             {
                 "p_id_nomina": id_nomina,
@@ -141,13 +152,14 @@ def insertar_nomina(id_nomina: str, fecha_carga, fecha_pago, estado: str = "parc
 def obtener_nominas_parciales():
     """Obtiene todas las nóminas con estado 'parcial' o 'pendiente' de cualquier fecha."""
     try:
-        _client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
+        client = _get_client()
+        client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
         # Obtener 'parcial' o 'pendiente'
-        result_parcial = _client.table("bot1_nominas_descargadas") \
+        result_parcial = client.table("bot1_nominas_descargadas") \
             .select("*") \
             .eq("estado", "parcial") \
             .execute()
-        result_pendiente = _client.table("bot1_nominas_descargadas") \
+        result_pendiente = client.table("bot1_nominas_descargadas") \
             .select("*") \
             .eq("estado", "pendiente") \
             .execute()
@@ -173,7 +185,8 @@ def actualizar_nomina_estado(id_nomina: str, estado: str, ruta_drive: str = None
         True si se actualizó exitosamente
     """
     try:
-        _client.rpc(
+        client = _get_client()
+        client.rpc(
             "actualizar_nomina",
             {
                 "p_id_nomina": id_nomina,

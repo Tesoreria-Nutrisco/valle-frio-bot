@@ -28,18 +28,16 @@ except ImportError as e:
 
 
 def deploy():
-    """Despliega el Valle Frío Bot Flow desde GitHub en lenovo-rpa-pool."""
+    """Despliega el Valle Frío Bot Flow usando Prefect Cloud."""
     print("=" * 80)
     print("PREFECT DEPLOY: Valle Frío Bot")
     print("=" * 80)
     print(f"Timestamp: {datetime.now().isoformat()}")
     print()
 
-    schedule = Cron("0 8,12,18 * * 1-5")
-
     print("Deployment: valle-frio-bot")
     print(f"Descripción: Bot de descarga de cartolas y comprobantes - Banco Consorcio")
-    print(f"Fuente: https://github.com/javieramunozc/valle-frio-bot.git")
+    print(f"Fuente: GitHub - https://github.com/javieramunozc/valle-frio-bot.git")
     print(f"Entrypoint: src/flows/valle_frio_bot_flow.py:valle_frio_bot_flow")
     print(f"Schedule: 0 8,12,18 * * 1-5 (8 AM, 12 PM, 6 PM lunes-viernes)")
     print(f"Work Pool: lenovo-rpa-pool")
@@ -47,16 +45,21 @@ def deploy():
 
     try:
         print("Registrando deployment en Prefect Cloud...")
+        print()
 
-        flow.from_source(
+        # Usar from_source() sin intentar importar localmente
+        # El worker en Lenovo descargará el código de GitHub
+        deployment = flow.from_source(
             source="https://github.com/javieramunozc/valle-frio-bot.git",
             entrypoint="src/flows/valle_frio_bot_flow.py:valle_frio_bot_flow",
+            ignore_cache=True,  # No cachear, siempre descargar la última versión
         ).deploy(
             name="valle-frio-bot",
             description="Bot de descarga de cartolas y comprobantes - Banco Consorcio",
             work_pool_name="lenovo-rpa-pool",
             cron="0 8,12,18 * * 1-5",
             tags=["valle-frio", "consorcio"],
+            is_schedule_active=True,
         )
 
         print()
@@ -67,7 +70,10 @@ def deploy():
         print("  - 12:00 (lunes-viernes)")
         print("  - 18:00 (lunes-viernes)")
         print()
-        print("Ver en: https://prefect.nutriscohub.com/deployments")
+        print("Ver en: https://prefect.nutriscohub.com/deployments/valle-frio-bot")
+        print()
+        print("IMPORTANTE: El worker en el Lenovo descargará el código de GitHub")
+        print("en cada ejecución. Asegúrate de que el Lenovo tenga acceso a GitHub.")
 
     except Exception as e:
         print(f"✗ Error durante deploy: {e}")
