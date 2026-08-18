@@ -58,6 +58,7 @@ def _load_prefect_secrets():
 	"""Carga secretos de Prefect y los establece como variables de entorno."""
 	from prefect.blocks.system import Secret
 	import json
+	import tempfile
 
 	secrets_map = {
 		"BANCO_USUARIO": "banco-usuario",
@@ -74,23 +75,35 @@ def _load_prefect_secrets():
 		"GAUSSDB_PASSWORD": "gaussdb-password",
 	}
 
+	print("📦 Cargando secretos de Prefect...")
 	for env_var, block_name in secrets_map.items():
 		try:
 			secret = Secret.load(block_name)
-			os.environ[env_var] = secret.get()
+			valor = secret.get()
+			os.environ[env_var] = valor
+			print(f"  ✓ {block_name:40} cargado")
 		except Exception as e:
-			print(f"⚠ No se pudo cargar {block_name}: {e}")
+			print(f"  ✗ {block_name:40} ERROR: {e}")
 
 	# Cargar Google Drive Credentials JSON
+	print()
+	print("📄 Cargando credenciales de Google Drive...")
 	try:
 		secret = Secret.load("google-drive-credentials-json")
-		creds_json = json.loads(secret.get())
-		creds_path = Path(__file__).parent.parent.parent / "credentials.json"
+		creds_json_str = secret.get()
+		creds_json = json.loads(creds_json_str)
+
+		# Escribir en archivo temporal
+		creds_path = Path(tempfile.gettempdir()) / "google_credentials.json"
 		with open(creds_path, "w") as f:
 			json.dump(creds_json, f)
+
 		os.environ["GOOGLE_DRIVE_CREDENTIALS_PATH"] = str(creds_path)
+		print(f"  ✓ Credenciales guardadas en: {creds_path}")
 	except Exception as e:
-		print(f"⚠ No se pudo cargar google-drive-credentials-json: {e}")
+		print(f"  ✗ ERROR cargando google-drive-credentials-json: {e}")
+		import traceback
+		traceback.print_exc()
 
 
 _ensure_dependencies()
