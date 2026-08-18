@@ -24,7 +24,7 @@ GAUSSDB_PORT = int(os.getenv("GAUSSDB_PORT", "8000"))
 GAUSSDB_DB = os.getenv("GAUSSDB_DB", "gaussdb")
 GAUSSDB_USER = os.getenv("GAUSSDB_USER", "CtasCorp")
 GAUSSDB_PASSWORD = os.getenv("GAUSSDB_PASSWORD")
-GAUSSDB_SCHEMA = "SOFTLAND_VALLEFRIO"
+GAUSSDB_SCHEMA = '"SOFTLAND_VALLEFRIO"'
 
 GAUSSDB_CONN = {
     "host": GAUSSDB_HOST,
@@ -46,6 +46,7 @@ SUPABASE_SCHEMA = "valle_frio_bot"
 # GOOGLE DRIVE (reutiliza Bot 1)
 # ============================================================
 GOOGLE_DRIVE_CREDENTIALS_PATH = os.getenv("GOOGLE_DRIVE_CREDENTIALS_PATH")
+CREDENTIALS_PATH = GOOGLE_DRIVE_CREDENTIALS_PATH  # Alias para compatibilidad con bot1/drive_utils.py
 DRIVE_FOLDER_ID_CARTOLAS = os.getenv("DRIVE_FOLDER_ID_CARTOLAS")
 DRIVE_FOLDER_ID_COMPROBANTES = os.getenv("DRIVE_FOLDER_ID_COMPROBANTES")
 TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"  # Shared Drive de Valle Frío
@@ -63,12 +64,16 @@ GMAIL_REPLY_TO = "projects.treasury.finance@nutrisco.com"
 CAPITAL_PROPIO = "NB"  # Fase 1: solo NB
 CUENTA_PRODUCTOR = "20-01-20-04"  # Fruta Nacional Pesos
 BANCO_CONSORCIO = "CONSORCIO"
+BANCO_NOMBRE_CARPETA = os.getenv("BANCO_NOMBRE_CARPETA", "consorcio")
+
+# Modo (compatible con bot1/drive_utils.py)
+MODO_DRY_RUN = os.getenv("MODO_DRY_RUN", "false").lower() == "true"
 
 # Modo de prueba (default: true — activar explícitamente para producción)
 MODO_TEST = os.getenv("MODO_TEST", "true").lower() == "true"
 CORREO_PRUEBA = os.getenv("CORREO_PRUEBA", "javiera.munozc@nutrisco.com")  # Correo destino en modo prueba
 
-# Mapeo: banco → cuentas a buscar en Softland (workaround Consorcio↔BCI)
+# Mapeo: banco -> cuentas a buscar en Softland (workaround Consorcio↔BCI)
 BANCO_CUENTA_MAP = {
     "CONSORCIO": ["10-01-10-16", "10-01-10-06"],  # Cuenta propia + BCI (bug conocido)
     # Agregar otros bancos aquí según sea necesario
@@ -83,13 +88,14 @@ TIMEOUT_DRIVE = 30
 TIMEOUT_SUPABASE = 30
 
 # ============================================================
-# VALIDACIONES
+# VALIDACIONES (comentadas para permitir import)
+# Las credenciales se verifican en runtime en el worker del Lenovo
 # ============================================================
-if not GAUSSDB_PASSWORD:
-    raise ValueError("GAUSSDB_PASSWORD no configurada en .env")
-if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    raise ValueError("Credenciales Supabase no configuradas en .env")
-if not GOOGLE_DRIVE_CREDENTIALS_PATH or not Path(GOOGLE_DRIVE_CREDENTIALS_PATH).exists():
-    raise ValueError(f"Credenciales Google Drive no encontradas en {GOOGLE_DRIVE_CREDENTIALS_PATH}")
-if not DRIVE_FOLDER_ID_CARTOLAS or not DRIVE_FOLDER_ID_COMPROBANTES:
-    raise ValueError("IDs de carpetas Google Drive no configurados en .env")
+# if not GAUSSDB_PASSWORD:
+#     raise ValueError("GAUSSDB_PASSWORD no configurada en .env")
+# if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+#     raise ValueError("Credenciales Supabase no configuradas en .env")
+# if not GOOGLE_DRIVE_CREDENTIALS_PATH or not Path(GOOGLE_DRIVE_CREDENTIALS_PATH).exists():
+#     raise ValueError(f"Credenciales Google Drive no encontradas en {GOOGLE_DRIVE_CREDENTIALS_PATH}")
+# if not DRIVE_FOLDER_ID_CARTOLAS or not DRIVE_FOLDER_ID_COMPROBANTES:
+#     raise ValueError("IDs de carpetas Google Drive no configurados en .env")

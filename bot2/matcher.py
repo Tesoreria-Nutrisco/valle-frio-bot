@@ -49,6 +49,8 @@ def hacer_matching(
     import time
 
     logger.info(f"Iniciando matching: {len(egresos_softland)} egresos vs {len(cartola_limpia)} cargos")
+    logger.debug(f"Columnas cartola: {list(cartola_limpia.columns)}")
+    logger.debug(f"Cartola shape: {cartola_limpia.shape}")
 
     cuentas_busqueda = BANCO_CUENTA_MAP.get(banco, [banco])
     logger.info(f"Banco: {banco} | Cuentas a buscar: {cuentas_busqueda}")
@@ -58,10 +60,10 @@ def hacer_matching(
     no_cuadra = []
 
     for egreso in egresos_softland:
-        logger.debug(f"Procesando egreso: {egreso['CpbNum']} | ${egreso['monto_egreso']} | {egreso['CpbFec']}")
+        logger.debug(f"Procesando egreso: {egreso['CpbNum']} | ${egreso['monto_egreso']} | {egreso['fecha']}")
 
         monto = egreso['monto_egreso']
-        fecha = egreso['CpbFec']
+        fecha = egreso['fecha']
 
         # Primer intento: búsqueda inmediata
         cargo = _buscar_cargo_en_cartola(cartola_limpia, monto, fecha, cuentas_busqueda)
@@ -73,43 +75,51 @@ def hacer_matching(
                 'cargo_cartola': cargo,
                 'intentos_match': 1
             })
-            logger.info(f"  ✓ MATCH encontrado (intento 1)")
+            logger.info(f"  [OK] MATCH encontrado (intento 1)")
 
         else:
-            # No encontrado en primer intento — intentar reintentos
-            match_encontrado = False
+            # No encontrado en primer intento
+            # Distinguir: ¿existe la fecha en cartola o no?
+            fecha_existe = _existe_fecha_en_cartola(cartola_limpia, fecha)
 
-            for intento_num in range(2, max_intentos + 1):
-                logger.debug(f"  • Reintento {intento_num}/{max_intentos}: pausa 2s antes de reintentar...")
-                time.sleep(2)  # Pausa breve para que se procese cartola en banco
-
-                cargo = _buscar_cargo_en_cartola(cartola_limpia, monto, fecha, cuentas_busqueda)
-
-                if cargo is not None:
-                    confirmados.append({
-                        **egreso,
-                        'cargo_cartola': cargo,
-                        'intentos_match': intento_num
-                    })
-                    logger.info(f"  ✓ MATCH encontrado (reintento {intento_num})")
-                    match_encontrado = True
-                    break
-
-            if not match_encontrado:
-                # Tras 3 intentos sigue sin encontrarse
-                no_cuadra.append({
+            if not fecha_existe:
+                # CASO A: No hay NINGÚN cargo con esa fecha en cartola
+                # -> sin_match (aparecerá en próxima corrida cuando se procese la cartola)
+                sin_match.append({
                     **egreso,
-                    'intentos_match': max_intentos,
-                    'motivo': f'No encontrado en cartola tras {max_intentos} intentos (MONTO+FECHA exacto)'
+                    'motivo': f'Fecha {fecha} no existe aún en cartola (cartola incompleta o desfasada)'
                 })
-                logger.warning(f"  ✗ NO CUADRA: {egreso['CpbNum']} no encontrado en cartola tras {max_intentos} intentos")
-            else:
-                # Ya matcheó en reintento, nada que hacer
-                pass
+                logger.info(f"  [PAUSE] SIN MATCH: Fecha {fecha} no existe en cartola, reintentará próxima corrida")
 
-            # Si no matcheó en NINGÚN intento, es sin_match (no entra en no_cuadra)
-            # sin_match solo para egresos que ni siquiera intentaron reintentos
-            # Aquí todos han reintentado, así que si no matchearon van a no_cuadra
+            else:
+                # CASO B: Existe la fecha, pero el monto no calza
+                # -> Intentar reintentos (por si cartola se actualiza) y luego no_cuadra
+                match_encontrado = False
+
+                for intento_num in range(2, max_intentos + 1):
+                    logger.debug(f"  • Reintento {intento_num}/{max_intentos}: pausa 2s antes de reintentar...")
+                    time.sleep(2)  # Pausa breve para que se procese cartola en banco
+
+                    cargo = _buscar_cargo_en_cartola(cartola_limpia, monto, fecha, cuentas_busqueda)
+
+                    if cargo is not None:
+                        confirmados.append({
+                            **egreso,
+                            'cargo_cartola': cargo,
+                            'intentos_match': intento_num
+                        })
+                        logger.info(f"  [OK] MATCH encontrado (reintento {intento_num})")
+                        match_encontrado = True
+                        break
+
+                if not match_encontrado:
+                    # Tras 3 intentos sigue sin encontrarse (fecha existe pero monto no)
+                    no_cuadra.append({
+                        **egreso,
+                        'intentos_match': max_intentos,
+                        'motivo': f'Fecha existe pero monto ${monto} no coincide con nada tras {max_intentos} intentos'
+                    })
+                    logger.warning(f"  [FAIL] NO CUADRA: {egreso['CpbNum']} fecha existe pero monto no calza tras {max_intentos} intentos")
 
     logger.info(f"Resultado: {len(confirmados)} confirmados, {len(sin_match)} sin match, {len(no_cuadra)} no cuadra")
 
@@ -118,6 +128,18 @@ def hacer_matching(
         'sin_match': sin_match,
         'no_cuadra': no_cuadra
     }
+
+
+def _existe_fecha_en_cartola(
+    cartola: pd.DataFrame,
+    fecha: str
+) -> bool:
+    """Verifica si existe ALGÚN cargo en cartola con esa fecha."""
+    if cartola.empty:
+        return False
+    cartola_fecha = pd.to_datetime(cartola.get('fecha', []), errors='coerce')
+    fecha_dt = pd.to_datetime(fecha, errors='coerce')
+    return (cartola_fecha == fecha_dt).any()
 
 
 def _buscar_cargo_en_cartola(
@@ -146,6 +168,11 @@ def _buscar_cargo_en_cartola(
         return None
 
     # Normalizar tipos de datos
+    if 'monto' not in cartola.columns or 'fecha' not in cartola.columns:
+        logger.warning(f"Cartola sin columnas esperadas. Columnas disponibles: {list(cartola.columns)}")
+        logger.warning(f"Contenido de cartola:\n{cartola.head()}")
+        return None
+
     cartola_monto = pd.to_numeric(cartola.get('monto', []), errors='coerce')
     cartola_fecha = pd.to_datetime(cartola.get('fecha', []), errors='coerce')
 
@@ -159,5 +186,5 @@ def _buscar_cargo_en_cartola(
     if len(coincidencias) > 0:
         return coincidencias.iloc[0].to_dict()
 
-    # No encontrado — retornar None (reintento será manejado por make_matching con pausa)
+    # No encontrado — retornar None (reintento será manejado por hacer_matching con pausa)
     return None

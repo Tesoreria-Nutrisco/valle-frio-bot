@@ -48,20 +48,15 @@ def descargar_cartola_mas_reciente(banco: str, dias_atras: int = 5) -> Optional[
     fecha_desde = (datetime.now() - timedelta(days=dias_atras)).strftime("%Y-%m-%d")
 
     try:
-        # Buscar archivos cartola_YYYYMMDD.xlsx en DRIVE_FOLDER_ID_CARTOLAS
+        # Buscar archivos cartola_*.xlsx globalmente (estructura de Drive: Bot-Cartolas/consorcio/YYYY/MM/DD/cartola_*.xlsx)
         query = (
-            f"parents='{DRIVE_FOLDER_ID_CARTOLAS}' "
-            f"and name contains 'cartola' "
+            f"name contains 'cartola' "
             f"and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' "
-            f"and createdTime > '{fecha_desde}' "
+            f"and modifiedTime > '{fecha_desde}' "
             f"and trashed=false"
         )
 
         results = drive.files().list(
-            corpora="drive",
-            driveId=TEAM_DRIVE_ID,
-            includeItemsFromAllDrives=True,
-            supportsAllDrives=True,
             q=query,
             spaces="drive",
             pageSize=10,
@@ -86,7 +81,7 @@ def descargar_cartola_mas_reciente(banco: str, dias_atras: int = 5) -> Optional[
                 _, done = downloader.next_chunk()
             tmp_path = tmp.name
 
-        logger.info(f"✓ Cartola descargada: {tmp_path}")
+        logger.info(f"[OK] Cartola descargada: {tmp_path}")
 
         # Limpiar y filtrar
         df = _limpiar_cartola(tmp_path, banco)
@@ -116,11 +111,11 @@ def _limpiar_cartola(ruta_archivo: str, banco: str) -> pd.DataFrame:
     # Buscar la fila con "Descripción" como header real
     df_raw = pd.read_excel(ruta_archivo, sheet_name=0, header=None)
 
-    # Buscar la fila de headers (típicamente contiene "Descripción", "Fecha", "Monto", etc.)
+    # Buscar la fila de headers (típicamente contiene "Descripción", "Fecha", "Cargos", etc.)
     header_row_idx = None
     for idx, row in df_raw.iterrows():
         row_str = " ".join(row.dropna().astype(str).str.strip().str.upper())
-        if "DESCRIPCIÓN" in row_str and "MONTO" in row_str:
+        if "DESCRIPCIÓN" in row_str and "CARGOS" in row_str:
             header_row_idx = idx
             break
 
@@ -149,8 +144,36 @@ def _limpiar_cartola(ruta_archivo: str, banco: str) -> pd.DataFrame:
     logger.info(f"Cartola filtrada (CARGO NÓMINA): {len(df_filtrado)} filas")
 
     # TRIM de campos texto
-    for col in df_filtrado.columns:
-        if df_filtrado[col].dtype == 'object':
-            df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+    for col in list(df_filtrado.columns):
+        try:
+            if df_filtrado[col].dtype == 'object':
+                df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+        except Exception as e:
+            logger.debug(f"No se pudo hacer TRIM en columna {col}: {e}")
 
+    # Normalizar nombres de columnas para matcher
+    # La cartola real tiene: Num., Fecha Contable, Descripción, Cargos, Abonos, Saldo
+    # Renombrar a: num, fecha, descripcion, monto
+    rename_map = {}
+    for col in df_filtrado.columns:
+        if pd.isna(col):
+            continue
+        col_lower = str(col).lower()
+        if 'fecha contable' in col_lower or 'fecha' in col_lower:
+            rename_map[col] = 'fecha'
+        elif 'cargos' in col_lower:
+            rename_map[col] = 'monto'
+        elif 'descripción' in col_lower or 'descripcion' in col_lower:
+            rename_map[col] = 'descripcion'
+        elif 'num.' in col_lower or 'num' in col_lower:
+            rename_map[col] = 'num'
+
+    # Eliminar columnas NaN
+    df_filtrado = df_filtrado.dropna(axis=1, how='all')
+
+    if rename_map:
+        df_filtrado = df_filtrado.rename(columns=rename_map)
+        logger.debug(f"Columnas renombradas: {rename_map}")
+
+    logger.debug(f"Columnas finales: {list(df_filtrado.columns)}")
     return df_filtrado

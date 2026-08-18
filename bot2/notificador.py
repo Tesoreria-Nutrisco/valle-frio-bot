@@ -5,7 +5,7 @@ Envío de correos de notificación y alertas al desarrollador.
 import logging
 import base64
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -134,7 +134,7 @@ def enviar_notificacion_pago(
         send_message = {'raw': raw_message}
         gmail.users().messages().send(userId='me', body=send_message).execute()
 
-        logger.info(f"✓ Correo enviado a {', '.join(to_emails)}" + (f" CC: {', '.join(cc_emails)}" if cc_emails else ""))
+        logger.info(f"[OK] Correo enviado a {', '.join(to_emails)}" + (f" CC: {', '.join(cc_emails)}" if cc_emails else ""))
         return True
 
     except Exception as e:
@@ -180,7 +180,7 @@ def enviar_alerta_desarrollador_no_cuadra(egreso: Dict, intento_numero: int = 3)
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
         gmail.users().messages().send(userId='me', body={'raw': raw_message}).execute()
 
-        logger.info("✓ Alerta enviada a desarrollador")
+        logger.info("[OK] Alerta enviada a desarrollador")
         return True
 
     except Exception as e:
@@ -221,7 +221,7 @@ def enviar_alerta_desarrollador_falta_contacto(egreso: Dict) -> bool:
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
         gmail.users().messages().send(userId='me', body={'raw': raw_message}).execute()
 
-        logger.info("✓ Alerta 'falta contacto' enviada")
+        logger.info("[OK] Alerta 'falta contacto' enviada")
         return True
 
     except Exception as e:

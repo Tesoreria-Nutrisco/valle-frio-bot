@@ -19,49 +19,45 @@ logger = logging.getLogger(__name__)
 
 def obtener_egresos_softland(dias_atras: int = 30) -> List[Dict]:
     """
-    Obtiene egresos en cuenta de banco propio (capital NB) donde existe
-    contrapartida en cuenta de productor 20-01-20-04 con MovDebe > 0.
+    Obtiene egresos Softland de Consorcio (10-01-10-16) + BCI (10-01-10-06 por bug conocido).
+    Solo nóminas bancarias (cwcpbte.Proceso = 'emisión de nómina'), con contrapartida en productor 20-01-20-04.
+
+    REGLA CONSORCIO↔BCI: Busca en ambas cuentas por bug conocido de Softland.
+    FILTRO NÓMINA: Usa cwcpbte.Proceso='emisión de nómina' (no TipDocCb que mostraba valores incorrectos).
 
     Args:
-        dias_atras: días de histórico a consultar desde hoy
+        dias_atras: días de histórico a consultar desde hoy (default 30)
 
     Returns:
-        Lista de dicts con: CpbAno, CpbNum, PctCod (cuenta banco),
-        CpbFec, MovHaber (monto), y líneas de productor (CodAux, MovDebe, MovGlosa)
+        Lista de dicts con: CpbAno, CpbNum, cuenta_banco, fecha, monto_egreso,
+        productor_cod, monto_productor, glosa
     """
-    logger.info(f"Consultando Softland: egresos de {CAPITAL_PROPIO} con productor (últimos {dias_atras} días)")
-
-    fecha_desde = (datetime.now() - timedelta(days=dias_atras)).date()
-    fecha_hasta = datetime.now().date()
+    logger.info(f"Consultando Softland: egresos Consorcio+BCI, nóminas, productor (últimos {dias_atras} días)")
 
     query = f"""
     SELECT
-        m1.CpbAno,
-        m1.CpbNum,
-        p1.PctCod AS cuenta_banco,
-        m1.CpbFec,
-        m1.MovHaber AS monto_egreso,
-        m2.CodAux AS productor_cod,
-        m2.MovDebe AS productor_monto,
-        m2.MovGlosa,
-        m1.TipDocCb
-    FROM
-        {GAUSSDB_SCHEMA}.cwmovim m1
-        INNER JOIN {GAUSSDB_SCHEMA}.cwpctas p1 ON m1.CpbAno = p1.CpbAno AND m1.CpbNum = p1.CpbNum AND m1.CpbCod = p1.PctCod
-        INNER JOIN {GAUSSDB_SCHEMA}.cwmovim m2 ON m1.CpbAno = m2.CpbAno AND m1.CpbNum = m2.CpbNum
-        INNER JOIN {GAUSSDB_SCHEMA}.cwpctas p2 ON m2.CpbAno = p2.CpbAno AND m2.CpbNum = p2.CpbNum AND m2.CpbCod = p2.PctCod
-    WHERE
-        -- Egreso en cuenta de banco propio
-        p1.PctCod IN (SELECT PctCod FROM {GAUSSDB_SCHEMA}.cwpctas WHERE Cpbano = {CAPITAL_PROPIO})
-        AND m1.MovDebe = 0  -- Es egreso (Debe = 0 significa Haber)
-        AND m1.MovHaber > 0
-        -- Contrapartida en cuenta de productor
-        AND p2.PctCod = '{CUENTA_PRODUCTOR}'
-        AND m2.MovDebe > 0  -- Monto adeudado al productor
-        -- Rango de fechas
-        AND m1.CpbFec BETWEEN '{fecha_desde}' AND '{fecha_hasta}'
-    ORDER BY
-        m1.CpbFec DESC, m1.CpbNum DESC
+      b."CpbAno",
+      b."CpbNum",
+      TRIM(b."PctCod") AS cuenta_banco,
+      b."CpbFec" AS fecha,
+      b."MovHaber" AS monto_egreso,
+      TRIM(p."CodAux") AS productor_cod,
+      p."MovDebe" AS monto_productor,
+      p."MovGlosa" AS glosa
+    FROM "SOFTLAND_VALLEFRIO"."cwmovim" b
+    JOIN "SOFTLAND_VALLEFRIO"."cwmovim" p
+      ON b."CpbAno" = p."CpbAno"
+      AND b."CpbNum" = p."CpbNum"
+    JOIN "SOFTLAND_VALLEFRIO"."cwcpbte" c
+      ON b."CpbAno" = c."CpbAno"
+      AND b."CpbNum" = c."CpbNum"
+    WHERE c."Proceso" = 'emisión de nómina'
+      AND TRIM(b."PctCod") IN ('10-01-10-16', '10-01-10-06')
+      AND b."MovHaber" > 0
+      AND TRIM(p."PctCod") = '20-01-20-04'
+      AND p."MovDebe" > 0
+      AND b."CpbFec" >= CURRENT_DATE - INTERVAL '{dias_atras} days'
+    ORDER BY b."CpbFec" DESC;
     """
 
     try:
@@ -74,7 +70,7 @@ def obtener_egresos_softland(dias_atras: int = 30) -> List[Dict]:
             if df[col].dtype == 'object':
                 df[col] = df[col].str.strip()
 
-        logger.info(f"✓ Extracción OK: {len(df)} movimientos encontrados")
+        logger.info(f"[OK] Extracción OK: {len(df)} movimientos encontrados")
         return df.to_dict('records')
 
     except Exception as e:
@@ -90,28 +86,29 @@ def obtener_contacto_productor(productor_cod: str) -> Tuple[str, str, str]:
     3. cwtaxco.Email (fallback de contacto)
 
     Args:
-        productor_cod: RUT/código auxiliar del productor
+        productor_cod: RUT/código auxiliar del productor (con o sin espacios)
 
     Returns:
         Tuple (email, email_dte, email_contacto) — None si no existe
     """
-    query = f"""
+    query = """
     SELECT
-        TRIM(aux.EMail) AS email,
-        TRIM(aux.eMailDTE) AS email_dte,
-        TRIM(COALESCE(con.Email, '')) AS email_contacto,
-        aux.Nombre
+        TRIM("EMail") AS email,
+        TRIM("eMailDTE") AS email_dte,
+        TRIM(COALESCE("Email", '')) AS email_contacto,
+        TRIM("NomAux") AS nombre
     FROM
-        {GAUSSDB_SCHEMA}.cwtauxi aux
-        LEFT JOIN {GAUSSDB_SCHEMA}.cwtaxco con ON aux.CodAux = con.CodAuc
+        "SOFTLAND_VALLEFRIO"."cwtauxi" aux
+        LEFT JOIN "SOFTLAND_VALLEFRIO"."cwtaxco" con
+          ON TRIM(aux."CodAux") = TRIM(con."CodAuc")
     WHERE
-        aux.CodAux = '{productor_cod}'
+        TRIM(aux."CodAux") = %s
     LIMIT 1
     """
 
     try:
         conn = psycopg2.connect(**GAUSSDB_CONN, connect_timeout=TIMEOUT_GAUSSDB)
-        df = pd.read_sql(query, conn)
+        df = pd.read_sql(query, conn, params=(productor_cod.strip(),))
         conn.close()
 
         if df.empty:
