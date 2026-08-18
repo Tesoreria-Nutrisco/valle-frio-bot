@@ -91,11 +91,13 @@ def _load_prefect_secrets():
 	print("📄 Cargando credenciales de Google Drive...")
 	try:
 		secret = Secret.load("google-drive-credentials-json")
-		creds_json_str = secret.get()
-		print(f"  DEBUG: Tipo de creds_json_str: {type(creds_json_str)}")
-		print(f"  DEBUG: Primeros 100 chars: {str(creds_json_str)[:100]}")
+		creds_value = secret.get()
 
-		creds_json = json.loads(creds_json_str)
+		# Si es dict, usarlo directamente; si es string, parsear JSON
+		if isinstance(creds_value, dict):
+			creds_json = creds_value
+		else:
+			creds_json = json.loads(creds_value)
 
 		# Escribir en archivo temporal
 		creds_path = Path(tempfile.gettempdir()) / "google_credentials.json"
@@ -104,7 +106,6 @@ def _load_prefect_secrets():
 
 		os.environ["GOOGLE_DRIVE_CREDENTIALS_PATH"] = str(creds_path)
 		print(f"  ✓ Credenciales guardadas en: {creds_path}")
-		print(f"  DEBUG: GOOGLE_DRIVE_CREDENTIALS_PATH={os.environ.get('GOOGLE_DRIVE_CREDENTIALS_PATH')}")
 	except Exception as e:
 		print(f"  ✗ ERROR cargando google-drive-credentials-json: {e}")
 		import traceback
