@@ -55,8 +55,8 @@ TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"  # Shared Drive de Valle Frío
 # GMAIL API (notificaciones)
 # ============================================================
 GMAIL_SERVICE_ACCOUNT = os.getenv("GOOGLE_DRIVE_CREDENTIALS_PATH")  # Reutilizar credenciales
-GMAIL_SENDER = "projects.treasury.finance@nutrisco.com"  # Remitente de correos
-GMAIL_REPLY_TO = "projects.treasury.finance@nutrisco.com"
+GMAIL_SENDER = "javiera.munozc@nutrisco.com"  # Remitente de correos
+GMAIL_REPLY_TO = "javiera.munozc@nutrisco.com"
 
 # ============================================================
 # BOT 2 CONFIGURACIÓN

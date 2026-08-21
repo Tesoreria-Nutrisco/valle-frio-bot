@@ -31,6 +31,179 @@ def obtener_servicio_drive():
     return build("drive", "v3", credentials=credentials)
 
 
+def descargar_cartolas_rango(banco: str, dias_atras: int = 30, fecha_hasta: datetime = None) -> Optional[pd.DataFrame]:
+    """
+    Descargar y combinar TODAS las cartolas del banco en Drive navegando estructura:
+    Cartolas > consorcio > 2026 > 08 > {03,17,18,...}
+
+    Esto garantiza matching correcto contra egresos de múltiples días (no solo el más reciente).
+
+    Args:
+        banco: nombre del banco (ej: 'CONSORCIO')
+        dias_atras: días de histórico a buscar hacia atrás (debe coincidir con obtener_egresos_softland)
+        fecha_hasta: Fecha límite superior (default: datetime.now()).
+                    En modo testing: usar la fecha simulada para buscar solo hacia atrás desde esa fecha.
+                    En producción: usar None para que sea hoy.
+
+    Returns:
+        DataFrame combinado con cargos NÓMINA de todos los días, o None si no hay cartolas
+    """
+    if fecha_hasta is None:
+        fecha_hasta = datetime.now()
+
+    fecha_desde = (fecha_hasta - timedelta(days=dias_atras)).date()
+    fecha_hasta_date = fecha_hasta.date() if isinstance(fecha_hasta, datetime) else fecha_hasta
+
+    logger.info(f"Descargando TODAS las cartolas de {banco} en Drive ({fecha_desde} a {fecha_hasta_date})")
+
+    drive = obtener_servicio_drive()
+
+    try:
+        # Navegar estructura: DRIVE_FOLDER_ID_CARTOLAS > consorcio > 2026 > 08
+        cartolas_id = DRIVE_FOLDER_ID_CARTOLAS
+
+        # Buscar consorcio
+        query = f"parents='{cartolas_id}' and name='consorcio' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        results = drive.files().list(
+            q=query,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            pageSize=10,
+            fields='files(id, name)'
+        ).execute()
+        consorcio_folders = results.get('files', [])
+        if not consorcio_folders:
+            logger.warning("No se encontró carpeta 'consorcio' dentro de Cartolas")
+            return None
+
+        consorcio_id = consorcio_folders[0]['id']
+
+        # Buscar 2026
+        query = f"parents='{consorcio_id}' and name='2026' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        results = drive.files().list(
+            q=query,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            pageSize=10,
+            fields='files(id, name)'
+        ).execute()
+        year_folders = results.get('files', [])
+        if not year_folders:
+            logger.warning("No se encontró carpeta '2026'")
+            return None
+
+        year_id = year_folders[0]['id']
+
+        # Buscar 08
+        query = f"parents='{year_id}' and name='08' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        results = drive.files().list(
+            q=query,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            pageSize=10,
+            fields='files(id, name)'
+        ).execute()
+        month_folders = results.get('files', [])
+        if not month_folders:
+            logger.warning("No se encontró carpeta '08'")
+            return None
+
+        month_id = month_folders[0]['id']
+
+        # Listar TODAS las carpetas de día dentro de 08
+        query = f"parents='{month_id}' and trashed=false"
+        results = drive.files().list(
+            q=query,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            pageSize=100,
+            orderBy='name',
+            fields='files(id, name, mimeType)'
+        ).execute()
+
+        day_folders = results.get('files', [])
+        if not day_folders:
+            logger.warning("No se encontraron carpetas de día en 08")
+            return None
+
+        logger.info(f"Carpetas de día encontradas: {len(day_folders)}")
+
+        # Descargar, limpiar y combinar TODAS las cartolas dentro del rango de fechas
+        cartolas_limpias = []
+        for day_folder in day_folders:
+            if 'folder' not in day_folder['mimeType']:
+                continue
+
+            day_id = day_folder['id']
+            day_name = day_folder['name']
+
+            # Filtrar: solo incluir días dentro del rango [fecha_desde, fecha_hasta_date]
+            try:
+                day_date = datetime.strptime(day_name, "%d").replace(
+                    year=fecha_hasta_date.year,
+                    month=fecha_hasta_date.month
+                ).date()
+                if day_date < fecha_desde or day_date > fecha_hasta_date:
+                    logger.debug(f"  Saltando día {day_name}: fuera del rango [{fecha_desde}, {fecha_hasta_date}]")
+                    continue
+            except (ValueError, TypeError):
+                logger.debug(f"  Saltando día {day_name}: no es formato DD válido")
+                continue
+
+            # Buscar cartolas en esta carpeta de día
+            query = f"parents='{day_id}' and name contains 'cartola' and trashed=false"
+            results = drive.files().list(
+                q=query,
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+                pageSize=50,
+                fields='files(id, name, modifiedTime)'
+            ).execute()
+
+            day_files = results.get('files', [])
+
+            for file_info in day_files:
+                try:
+                    file_id = file_info['id']
+                    file_name = file_info['name']
+                    logger.info(f"  Descargando día {day_name}: {file_name}")
+
+                    # Descargar
+                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+                        request = drive.files().get_media(fileId=file_id)
+                        downloader = MediaIoBaseDownload(tmp, request)
+                        done = False
+                        while not done:
+                            _, done = downloader.next_chunk()
+                        tmp_path = tmp.name
+
+                    # Limpiar
+                    df = _limpiar_cartola(tmp_path, banco)
+                    if df is not None and len(df) > 0:
+                        cartolas_limpias.append(df)
+                        logger.info(f"    [OK] {len(df)} cargos NÓMINA encontrados")
+
+                    Path(tmp_path).unlink()  # Eliminar temporal
+
+                except Exception as e:
+                    logger.warning(f"  Error descargando {file_name}: {e}")
+                    continue
+
+        if not cartolas_limpias:
+            logger.warning("No se pudo limpiar ninguna cartola")
+            return None
+
+        # Combinar todas en un DataFrame
+        cartola_combinada = pd.concat(cartolas_limpias, ignore_index=True)
+        logger.info(f"Cartola combinada: {len(cartola_combinada)} cargos NÓMINA totales")
+
+        return cartola_combinada
+
+    except Exception as e:
+        logger.error(f"Error descargando cartolas de {banco}: {e}")
+        raise
+
+
 def descargar_cartola_mas_reciente(banco: str, dias_atras: int = 5) -> Optional[pd.DataFrame]:
     """
     Busca y descarga la cartola más reciente del banco en Drive.
