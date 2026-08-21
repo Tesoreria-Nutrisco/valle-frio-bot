@@ -25,12 +25,65 @@ import tempfile
 
 from config import BANCO_CUENTA_MAP
 from supabase_bot2 import obtener_nominas_descargadas_supabase
-from nomina_parser import extraer_beneficiarios_nomina, normalizar_rut
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 from googleapiclient.http import MediaIoBaseDownload
 
+# Importar desde bot1
+import sys
+from pathlib import Path
+bot1_path = str(Path(__file__).parent.parent / "bot1")
+if bot1_path not in sys.path:
+    sys.path.insert(0, bot1_path)
+from pdf_parser import normalizar_rut
+
 logger = logging.getLogger(__name__)
+
+
+def extraer_beneficiarios_nomina(excel_path: str) -> List[Tuple[str, float]]:
+    """
+    Extrae beneficiarios (RUT, monto) de un archivo Excel de nómina.
+
+    Args:
+        excel_path: Ruta al archivo Excel de nómina
+
+    Returns:
+        Lista de tuplas (rut_normalizado, monto)
+    """
+    try:
+        df = pd.read_excel(excel_path, sheet_name=0)
+        beneficiarios = []
+
+        # Buscar columnas de RUT y monto (nombres comunes)
+        rut_col = None
+        monto_col = None
+
+        for col in df.columns:
+            col_lower = str(col).lower()
+            if any(x in col_lower for x in ['rut', 'cédula', 'cedula']):
+                rut_col = col
+            if any(x in col_lower for x in ['monto', 'sueldo', 'remuneración', 'remuneracion', 'líquido', 'liquido']):
+                monto_col = col
+
+        if not rut_col or not monto_col:
+            logger.warning(f"No se encontraron columnas RUT/Monto en {excel_path}")
+            return []
+
+        # Extraer beneficiarios
+        for _, row in df.iterrows():
+            rut = str(row[rut_col]).strip() if pd.notna(row[rut_col]) else None
+            monto = float(row[monto_col]) if pd.notna(row[monto_col]) else 0
+
+            if rut and monto > 0:
+                rut_norm = normalizar_rut(rut)
+                beneficiarios.append((rut_norm, monto))
+
+        logger.debug(f"Beneficiarios extraídos de {Path(excel_path).name}: {len(beneficiarios)}")
+        return beneficiarios
+
+    except Exception as e:
+        logger.error(f"Error extrayendo beneficiarios de {excel_path}: {e}")
+        return []
 
 
 def _obtener_id_nomina_de_glosa(glosa: str) -> Optional[str]:
