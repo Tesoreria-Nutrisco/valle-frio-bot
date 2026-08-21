@@ -1,21 +1,17 @@
 """
 Envío de correos de notificación y alertas al desarrollador.
+Usa Supabase Edge Function (send-email-bot2) para envío seguro.
 """
 
 import logging
+import requests
+import os
 import base64
 from pathlib import Path
 from typing import Optional, List, Dict
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
-
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
+from datetime import datetime
 
 from config import (
-    GOOGLE_DRIVE_CREDENTIALS_PATH,
     GMAIL_SENDER,
     GMAIL_REPLY_TO,
     TEMPLATES_PATH,
@@ -25,14 +21,84 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
+# Cache de logos en base64
+_LOGOS_CACHE = {}
 
-def obtener_servicio_gmail():
-    """Inicializa cliente de Gmail API."""
-    scopes = ["https://www.googleapis.com/auth/gmail.send"]
-    credentials = Credentials.from_service_account_file(
-        GOOGLE_DRIVE_CREDENTIALS_PATH, scopes=scopes
-    )
-    return build("gmail", "v1", credentials=credentials)
+def obtener_logo_base64(nombre_logo: str) -> str:
+    """Obtiene logo en base64, cacheado en memoria."""
+    if nombre_logo not in _LOGOS_CACHE:
+        logo_path = TEMPLATES_PATH.parent / "assets" / f"{nombre_logo}.png"
+        try:
+            with open(logo_path, "rb") as f:
+                _LOGOS_CACHE[nombre_logo] = base64.b64encode(f.read()).decode("utf-8")
+                logger.debug(f"Logo cacheado: {nombre_logo} ({len(_LOGOS_CACHE[nombre_logo])} chars)")
+        except FileNotFoundError:
+            logger.warning(f"Logo no encontrado: {logo_path}")
+            _LOGOS_CACHE[nombre_logo] = ""
+    return _LOGOS_CACHE[nombre_logo]
+
+# URL de la Edge Function de Supabase para Bot 2
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SEND_EMAIL_BOT2_FUNCTION_URL = f"{SUPABASE_URL}/functions/v1/send-email-bot2"
+
+
+def enviar_email_via_edge_function(to: str, subject: str, html: str, attachment_base64: str = None, attachment_filename: str = None) -> bool:
+    """
+    Envía email usando Supabase Edge Function (send-email-bot2).
+    Usa credenciales de Google OAuth 2.0 configuradas en Supabase secrets.
+
+    Args:
+        to: Email destino
+        subject: Asunto del correo
+        html: Contenido HTML del correo
+        attachment_base64: Archivo en base64 (opcional)
+        attachment_filename: Nombre del archivo adjunto (opcional)
+
+    Returns:
+        True si se envió, False si falló
+    """
+    if not SUPABASE_SERVICE_ROLE_KEY or not SEND_EMAIL_BOT2_FUNCTION_URL:
+        logger.warning(f"⚠️ Credenciales de Supabase no configuradas. No se puede enviar email a {to}")
+        logger.info(f"📧 Para: {to} | Asunto: {subject}")
+        return False
+
+    try:
+        payload = {
+            "to": to,
+            "subject": subject,
+            "html": html
+        }
+
+        # Agregar attachment si está disponible
+        if attachment_base64 and attachment_filename:
+            payload["attachment"] = {
+                "filename": attachment_filename,
+                "content": attachment_base64,
+                "encoding": "base64"
+            }
+
+        response = requests.post(
+            SEND_EMAIL_BOT2_FUNCTION_URL,
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json",
+            },
+            timeout=30
+        )
+
+        if response.status_code in [200, 201, 202]:
+            logger.info(f"✓ Email enviado a {to} vía Edge Function send-email-bot2")
+            return True
+        else:
+            logger.warning(f"⚠️ Edge Function retornó {response.status_code}: {response.text}")
+            return False
+
+    except Exception as e:
+        logger.warning(f"⚠️ Error llamando Edge Function: {e}")
+        logger.info(f"📧 Para: {to}")
+        return False
 
 
 def enviar_notificacion_pago(
@@ -71,27 +137,34 @@ def enviar_notificacion_pago(
 
         # Preparar datos dinámicos
         fecha_pago = facturas[0]['fecha_pago'] if facturas else "N/A"
+
+        # Generar filas de facturas con estructura HTML correcta
         filas_facturas = ""
         for factura in facturas:
-            filas_facturas += f"""
-            <tr>
-              <td style="padding:10px; color:#1B1868; border-bottom:1px solid #f1f5f9;">{factura.get('numero', 'N/A')}</td>
-              <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9;">{factura.get('fecha', fecha_pago)}</td>
-              <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9; text-align:right;">${factura.get('monto', monto_total):,.0f}</td>
-            </tr>
-            """
+            numero = factura.get('numero', 'N/A')
+            fecha = factura.get('fecha', str(fecha_pago))
+            monto = factura.get('monto', monto_total)
+            filas_facturas += f'        <tr>\n'
+            filas_facturas += f'          <td style="padding:10px; color:#1B1868; border-bottom:1px solid #f1f5f9;">{numero}</td>\n'
+            filas_facturas += f'          <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9;">{fecha}</td>\n'
+            filas_facturas += f'          <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9; text-align:right;">${monto:,.0f}</td>\n'
+            filas_facturas += f'        </tr>\n'
 
         # Reemplazar placeholders
         html_content = html_template
-        html_content = html_content.replace("{{NOMBRE_PRODUCTOR}}", productor_nombre)
-        html_content = html_content.replace("{{MONTO_TOTAL}}", f"{monto_total:,.0f}")
+        html_content = html_content.replace("{{PRODUCTOR_NOMBRE}}", productor_nombre)  # CRÍTICO: es PRODUCTOR_NOMBRE, no NOMBRE_PRODUCTOR
+        html_content = html_content.replace("{{MONTO_TOTAL}}", f"${monto_total:,.0f}")
         html_content = html_content.replace("{{NUM_FACTURAS}}", str(len(facturas)))
-        html_content = html_content.replace("{{COMPROBANTE}}", Path(comprobante_path).name)
         html_content = html_content.replace("{{FILAS_FACTURAS}}", filas_facturas)
         html_content = html_content.replace("{{FECHA_PAGO}}", str(fecha_pago))
-        html_content = html_content.replace("{{NOMBRE_COMPROBANTE}}", Path(comprobante_path).name)
+        html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", Path(comprobante_path).name)
+        html_content = html_content.replace("{{CPB_NUM}}", "N/A")
 
         # Preparar destinatarios
+        to_emails = []
+        cc_emails = []
+        asunto_prefix = ""
+
         if MODO_TEST:
             # Modo prueba: enviar a correo de prueba
             to_emails = [CORREO_PRUEBA]
@@ -104,38 +177,39 @@ def enviar_notificacion_pago(
             # Modo producción: enviar a destinatarios reales
             to_emails = [e for e in [productor_email] if e]
             cc_emails = [e for e in [zonal_email] if e]
-            asunto_prefix = ""
             logger.info(f"Modo producción: enviando a {to_emails}" + (f" CC: {cc_emails}" if cc_emails else ""))
 
-        # Crear mensaje
-        message = MIMEMultipart('alternative')
-        message['Subject'] = f"{asunto_prefix}Notificación de pago confirmado - Valle Frío (${monto_total:,.0f})"
-        message['From'] = GMAIL_SENDER
-        message['To'] = ", ".join(to_emails)
-        if not MODO_TEST and 'cc_emails' in locals():
-            message['Cc'] = ", ".join(cc_emails)
-        message['Reply-To'] = GMAIL_REPLY_TO
+        # Preparar attachment del comprobante
+        attachment_base64 = None
+        attachment_filename = None
 
-        # Adjuntar HTML
-        message.attach(MIMEText(html_content, 'html'))
+        if comprobante_path and Path(comprobante_path).exists():
+            try:
+                with open(comprobante_path, "rb") as f:
+                    import base64 as b64_module
+                    attachment_base64 = b64_module.b64encode(f.read()).decode("utf-8")
+                    attachment_filename = Path(comprobante_path).name
+                    logger.info(f"Comprobante adjuntado: {attachment_filename}")
+            except Exception as e:
+                logger.warning(f"No se pudo adjuntar comprobante {comprobante_path}: {e}")
 
-        # Adjuntar comprobante PDF (si existe en local)
-        if Path(comprobante_path).exists():
-            with open(comprobante_path, 'rb') as attachment:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(attachment.read())
-                encoders.encode_base64(part)
-                part.add_header('Content-Disposition', f'attachment; filename= {Path(comprobante_path).name}')
-                message.attach(part)
+        # Enviar vía Edge Function
+        email_enviado = enviar_email_via_edge_function(
+            to=to_emails[0],
+            subject=f"{asunto_prefix}Notificación de pago confirmado - Valle Frío (${monto_total:,.0f})",
+            html=html_content,
+            attachment_base64=attachment_base64,
+            attachment_filename=attachment_filename
+        )
 
-        # Enviar por Gmail
-        gmail = obtener_servicio_gmail()
-        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        send_message = {'raw': raw_message}
-        gmail.users().messages().send(userId='me', body=send_message).execute()
-
-        logger.info(f"[OK] Correo enviado a {', '.join(to_emails)}" + (f" CC: {', '.join(cc_emails)}" if cc_emails else ""))
-        return True
+        if email_enviado:
+            logger.info(f"[OK] Correo enviado a {', '.join(to_emails)}" + (f" CC: {', '.join(cc_emails)}" if cc_emails else ""))
+            return True
+        else:
+            logger.warning(f"⚠️ No se pudo enviar correo vía Edge Function")
+            logger.info(f"📧 Destinatarios: {', '.join(to_emails)}" + (f" CC: {', '.join(cc_emails)}" if cc_emails else ""))
+            logger.info("   → Estado permanecerá 'confirmado', se reintentará en próxima corrida")
+            return False
 
     except Exception as e:
         logger.error(f"Error enviando correo: {e}")
@@ -161,27 +235,29 @@ def enviar_alerta_desarrollador_no_cuadra(egreso: Dict, intento_numero: int = 3)
             html_content = f.read()
 
         # Reemplazar placeholders
+        fecha_corrida = datetime.now().strftime("%Y-%m-%d %H:%M")
         html_content = html_content.replace("{{COMPROBANTE}}", f"{egreso['CpbAno']} / {egreso['CpbNum']}")
-        html_content = html_content.replace("{{FECHA_CONTABLE}}", str(egreso['CpbFec']))
+        html_content = html_content.replace("{{FECHA_CONTABLE}}", str(egreso.get('fecha_carga', egreso.get('CpbFec', 'N/A'))))
         html_content = html_content.replace("{{MONTO}}", f"${egreso['monto_egreso']:,.0f}")
         html_content = html_content.replace("{{CUENTA_SOFTLAND}}", str(egreso['cuenta_banco']))
         html_content = html_content.replace("{{PRODUCTOR_COD}}", str(egreso['productor_cod']))
-        html_content = html_content.replace("{{PRODUCTOR_NOMBRE}}", "N/A")  # Agregar si disponible
+        html_content = html_content.replace("{{PRODUCTOR_NOMBRE}}", "N/A")
         html_content = html_content.replace("{{GLOSA}}", str(egreso.get('MovGlosa', 'N/A')))
-        html_content = html_content.replace("{{FECHA_CORRIDA}}", str(Path.cwd().name))  # Placeholder
+        html_content = html_content.replace("{{FECHA_CORRIDA}}", fecha_corrida)
 
-        # Enviar
-        gmail = obtener_servicio_gmail()
-        message = MIMEText(html_content, 'html')
-        message['Subject'] = f"⚠️ Alerta: pago sin cuadrar - Comprobante {egreso['CpbNum']}"
-        message['From'] = GMAIL_SENDER
-        message['To'] = "projects.treasury.finance@nutrisco.com"
+        # Enviar vía Edge Function
+        email_enviado = enviar_email_via_edge_function(
+            to="javiera.munozc@nutrisco.com",
+            subject=f"⚠️ Alerta: pago sin cuadrar - Comprobante {egreso['CpbNum']}",
+            html=html_content
+        )
 
-        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        gmail.users().messages().send(userId='me', body={'raw': raw_message}).execute()
-
-        logger.info("[OK] Alerta enviada a desarrollador")
-        return True
+        if email_enviado:
+            logger.info("[OK] Alerta enviada a desarrollador")
+            return True
+        else:
+            logger.warning("[FAIL] No se pudo enviar alerta")
+            return False
 
     except Exception as e:
         logger.error(f"Error enviando alerta 'no cuadra': {e}")
@@ -200,29 +276,27 @@ def enviar_alerta_desarrollador_falta_contacto(egreso: Dict) -> bool:
             html_content = f.read()
 
         # Reemplazar placeholders
+        fecha_corrida = datetime.now().strftime("%Y-%m-%d %H:%M")
         html_content = html_content.replace("{{COMPROBANTE}}", f"{egreso['CpbAno']} / {egreso['CpbNum']}")
         html_content = html_content.replace("{{FECHA_PAGO}}", str(egreso['CpbFec']))
         html_content = html_content.replace("{{MONTO}}", f"${egreso['monto_egreso']:,.0f}")
         html_content = html_content.replace("{{PRODUCTOR_NOMBRE}}", "N/A")
-        html_content = html_content.replace("{{PRODUCTOR_COD}}", str(egreso['productor_cod']))
-        html_content = html_content.replace("{{PRODUCTOR_EMAIL}}", "no registrado")
-        html_content = html_content.replace("{{PRODUCTOR_EMAIL_DTE}}", "no registrado")
-        html_content = html_content.replace("{{PRODUCTOR_EMAIL_CONTACTO}}", "no registrado")
-        html_content = html_content.replace("{{ZONAL_EMAIL}}", "no disponible")
-        html_content = html_content.replace("{{FECHA_CORRIDA}}", str(Path.cwd().name))
+        html_content = html_content.replace("{{PRODUCTOR_RUT}}", str(egreso.get('productor_cod', 'N/A')))
+        html_content = html_content.replace("{{FECHA_CORRIDA}}", fecha_corrida)
 
-        # Enviar
-        gmail = obtener_servicio_gmail()
-        message = MIMEText(html_content, 'html')
-        message['Subject'] = f"⚠️ Alerta: pago confirmado sin contacto - {egreso['CpbNum']}"
-        message['From'] = GMAIL_SENDER
-        message['To'] = "projects.treasury.finance@nutrisco.com"
+        # Enviar vía Edge Function
+        email_enviado = enviar_email_via_edge_function(
+            to="javiera.munozc@nutrisco.com",
+            subject=f"⚠️ Alerta: pago confirmado sin contacto - {egreso['CpbNum']}",
+            html=html_content
+        )
 
-        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        gmail.users().messages().send(userId='me', body={'raw': raw_message}).execute()
-
-        logger.info("[OK] Alerta 'falta contacto' enviada")
-        return True
+        if email_enviado:
+            logger.info("[OK] Alerta 'falta contacto' enviada")
+            return True
+        else:
+            logger.warning("[FAIL] No se pudo enviar alerta 'falta contacto'")
+            return False
 
     except Exception as e:
         logger.error(f"Error enviando alerta 'falta contacto': {e}")

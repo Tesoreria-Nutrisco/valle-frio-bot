@@ -348,37 +348,45 @@ class BotConsorcio:
                                 except Exception as e:
                                     logger.error(f"Error subiendo nómina a Drive: {e}")
 
+                                # Descargar SIEMPRE Excel (para Bot 2 - Opción D de matching)
+                                nomina_excel_path = None
+                                try:
+                                    logger.info(f"Descargando Excel para {id_nomina_parcial} (para Bot 2)...")
+                                    nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina_parcial, fecha_pago_obj)
+                                    if nomina_excel_path:
+                                        # Subir Excel a Drive (mismo lugar que nóminas)
+                                        try:
+                                            TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
+                                            folder_id_nominas = get_carpeta_destino(
+                                                self.drive_service,
+                                                DRIVE_FOLDER_ID_NOMINAS,
+                                                BANCO_NOMBRE_CARPETA,
+                                                fecha_pago_obj.date() if hasattr(fecha_pago_obj, 'date') else fecha_pago_obj,
+                                                TEAM_DRIVE_ID
+                                            )
+                                            file_name_excel = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago_obj.strftime('%Y%m%d')}_{id_nomina_parcial}.xlsx"
+                                            upload_file(self.drive_service, nomina_excel_path, folder_id_nominas, file_name_excel)
+                                            logger.info(f"✓ Excel de nómina {id_nomina_parcial} subido a Drive")
+                                        except Exception as e:
+                                            logger.warning(f"No se pudo subir Excel a Drive: {e}")
+                                except Exception as e:
+                                    logger.warning(f"No se pudo descargar Excel: {e}")
+
                                 # Extraer RUTs del PDF
                                 try:
                                     ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
                                     logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del PDF")
                                 except:
-                                    logger.warning("PDF vacío o sin RUTs, intentando descargar como Excel...")
-                                    try:
-                                        nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina_parcial, fecha_pago_obj)
-                                        if nomina_excel_path:
+                                    # Fallback al Excel si el PDF está vacío
+                                    if nomina_excel_path:
+                                        try:
                                             ruts_unicos = extraer_ruts_nomina_excel(nomina_excel_path)
-                                            logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel")
-
-                                            # Subir Excel a Drive (mismo lugar que nóminas)
-                                            try:
-                                                TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
-                                                folder_id_nominas = get_carpeta_destino(
-                                                    self.drive_service,
-                                                    DRIVE_FOLDER_ID_NOMINAS,
-                                                    BANCO_NOMBRE_CARPETA,
-                                                    fecha_pago_obj.date() if hasattr(fecha_pago_obj, 'date') else fecha_pago_obj,
-                                                    TEAM_DRIVE_ID
-                                                )
-                                                file_name_excel = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago_obj.strftime('%Y%m%d')}_{id_nomina_parcial}.xlsx"
-                                                upload_file(self.drive_service, nomina_excel_path, folder_id_nominas, file_name_excel)
-                                                logger.info(f"✓ Excel de nómina {id_nomina_parcial} subido a Drive: {folder_id_nominas}")
-                                            except Exception as e:
-                                                logger.warning(f"No se pudo subir Excel a Drive: {e}")
-                                        else:
+                                            logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel (PDF vacío)")
+                                        except Exception as e:
+                                            logger.error(f"No se pudo extraer RUTs del PDF ni del Excel: {e}")
                                             ruts_unicos = []
-                                    except Exception as e:
-                                        logger.error(f"No se pudo extraer RUTs ni del PDF ni del Excel: {e}")
+                                    else:
+                                        logger.error(f"No se pudo extraer RUTs: PDF vacío y Excel no disponible")
                                         ruts_unicos = []
 
                                 # Descargar comprobantes (con deduplicación en Drive)
@@ -717,30 +725,37 @@ class BotConsorcio:
                         except Exception as e:
                             logger.error(f"Error subiendo nómina a Drive: {e}")
 
-                        # Extraer RUTs y guardar como parcial
+                        # Descargar SIEMPRE Excel (para Bot 2 - Opción D de matching)
+                        nomina_excel_path = None
+                        try:
+                            logger.info(f"Descargando Excel para {id_nomina} (para Bot 2)...")
+                            nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina, fecha_pago)
+                            if nomina_excel_path:
+                                # Subir Excel a Drive (mismo lugar que nóminas)
+                                try:
+                                    file_name_excel = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago.strftime('%Y%m%d')}_{id_nomina}.xlsx"
+                                    upload_file(self.drive_service, nomina_excel_path, folder_id_nominas, file_name_excel)
+                                    logger.info(f"✓ Excel de nómina {id_nomina} subido a Drive: {folder_id_nominas}")
+                                except Exception as e:
+                                    logger.warning(f"No se pudo subir Excel a Drive: {e}")
+                        except Exception as e:
+                            logger.warning(f"No se pudo descargar Excel: {e}")
+
                         # Extraer RUTs del PDF
                         try:
                             ruts_unicos = extraer_ruts_nomina(nomina_pdf_path)
                             logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del PDF")
                         except:
-                            logger.warning("PDF vacío o sin RUTs, intentando descargar como Excel...")
-                            try:
-                                nomina_excel_path = await paso_2_descargar_nomina_por_id_excel(self.page, id_nomina, fecha_pago)
-                                if nomina_excel_path:
+                            # Fallback al Excel si el PDF está vacío
+                            if nomina_excel_path:
+                                try:
                                     ruts_unicos = extraer_ruts_nomina_excel(nomina_excel_path)
-                                    logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel")
-
-                                    # Subir Excel a Drive (mismo lugar que nóminas)
-                                    try:
-                                        file_name_excel = f"nomina_{BANCO_NOMBRE_CARPETA}_{fecha_pago.strftime('%Y%m%d')}_{id_nomina}.xlsx"
-                                        upload_file(self.drive_service, nomina_excel_path, folder_id_nominas, file_name_excel)
-                                        logger.info(f"✓ Excel de nómina {id_nomina} subido a Drive: {folder_id_nominas}")
-                                    except Exception as e:
-                                        logger.warning(f"No se pudo subir Excel a Drive: {e}")
-                                else:
+                                    logger.info(f"Se encontraron {len(ruts_unicos)} RUTs únicos del Excel (PDF vacío)")
+                                except Exception as e:
+                                    logger.error(f"No se pudo extraer RUTs del PDF ni del Excel: {e}")
                                     ruts_unicos = []
-                            except Exception as e:
-                                logger.error(f"No se pudo extraer RUTs ni del PDF ni del Excel: {e}")
+                            else:
+                                logger.error(f"No se pudo extraer RUTs: PDF vacío y Excel no disponible")
                                 ruts_unicos = []
                         insertar_nomina(id_nomina, metadatos['fecha_carga'], fecha_pago, 'parcial')
 

@@ -37,7 +37,9 @@ def _get_client() -> Client:
         if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
             raise ValueError("Faltan credenciales: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env")
         _client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-        _client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
+        # CRÍTICO: Establecer AMBOS headers para SELECT y para INSERT/UPDATE/DELETE
+        _client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA   # Para SELECT
+        _client.postgrest.headers["Content-Profile"] = SUPABASE_SCHEMA  # Para INSERT/UPDATE/DELETE
         logger.info(f"Cliente Supabase inicializado con schema: {SUPABASE_SCHEMA}")
     return _client
 
@@ -59,7 +61,6 @@ def verificar_cartola_transaccion(num_transaccion: str) -> bool:
     """
     try:
         client = _get_client()
-        client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
         result = client.table("bot1_cartola_transacciones") \
             .select("num_transaccion") \
             .eq("num_transaccion", num_transaccion) \
@@ -108,7 +109,6 @@ def verificar_nomina(id_nomina: str) -> dict | None:
     """
     try:
         client = _get_client()
-        client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
         result = client.table("bot1_nominas_descargadas") \
             .select("*") \
             .eq("id_nomina", id_nomina) \
@@ -153,7 +153,6 @@ def obtener_nominas_parciales():
     """Obtiene todas las nóminas con estado 'parcial' o 'pendiente' de cualquier fecha."""
     try:
         client = _get_client()
-        client.postgrest.headers["Accept-Profile"] = SUPABASE_SCHEMA
         # Obtener 'parcial' o 'pendiente'
         result_parcial = client.table("bot1_nominas_descargadas") \
             .select("*") \

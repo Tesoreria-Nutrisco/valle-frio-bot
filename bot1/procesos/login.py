@@ -39,14 +39,8 @@ async def paso_0_login(page):
         await asyncio.sleep(2)  # Esperar a que procese el login
         logger.info("Click en botón Ingresar")
 
-        # Esperar que seleccione la empresa (VALLE FRIO SPA)
-        await page.wait_for_selector("md-radio-button:has-text('VALLE FRIO SPA')", timeout=10000)
-        await asyncio.sleep(1)  # Pausa antes de seleccionar empresa
-        logger.info("Seleccionando empresa VALLE FRIO SPA")
-
-        await page.click("md-radio-button:has-text('VALLE FRIO SPA')", timeout=5000)
-        await asyncio.sleep(1.5)  # Pausa después de seleccionar empresa
-        logger.info("Empresa seleccionada")
+        # Nota: Ya no se selecciona empresa manualmente - Valle Frío es la única empresa
+        # El sistema entra automáticamente a Valle Frío SPA después del login
 
         # Esperar redirección al dashboard
         await page.wait_for_url("**/dashboard**", timeout=15000)

@@ -31,7 +31,7 @@ sys.path.insert(0, bot2_path)
 from config import MODO_TEST, BANCO_CONSORCIO, CAPITAL_PROPIO, LOG_PATH, CORREO_PRUEBA
 from config import DRIVE_FOLDER_ID_COMPROBANTES, BANCO_NOMBRE_CARPETA
 from gaussdb_client import obtener_egresos_softland, obtener_contacto_productor
-from cartola_cleaner import descargar_cartola_mas_reciente
+from cartola_cleaner import descargar_cartolas_rango
 from drive_utils import get_drive_service, get_carpeta_destino
 from matcher import hacer_matching
 from notificador import (
@@ -39,7 +39,8 @@ from notificador import (
     enviar_alerta_desarrollador_falta_contacto
 )
 from supabase_bot2 import (
-    verificar_pago_ya_notificado, registrar_pago, actualizar_pago_a_notificado
+    verificar_pago_ya_notificado, registrar_pago, actualizar_pago_a_notificado,
+    marcar_nomina_procesada
 )
 import tempfile
 from googleapiclient.http import MediaIoBaseDownload
@@ -74,8 +75,13 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, productor_cod: st
     try:
         drive = get_drive_service()
 
-        # Parsear fecha
-        fecha_dt = datetime.strptime(str(fecha_pago), "%Y-%m-%d")
+        # Parsear fecha (manejar datetime o string con timestamp)
+        if isinstance(fecha_pago, datetime):
+            fecha_dt = fecha_pago
+        else:
+            # Si es string, tomar solo la parte de fecha (antes del espacio)
+            fecha_str = str(fecha_pago).split()[0]
+            fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d")
         yyyy = fecha_dt.strftime("%Y")
         mm = fecha_dt.strftime("%m")
         dd = fecha_dt.strftime("%d")
@@ -146,15 +152,17 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, productor_cod: st
         return None, None
 
 
-def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> int:
+def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple[int, set]:
     """
-    Procesa egresos confirmados:
-    1. Verificar que no fue notificado antes (evitar duplicados)
-    2. Buscar comprobante en Drive
-    3. Obtener contacto y decidir estado inicial
-    4. Registrar en Supabase con estado apropiado ('confirmado' o 'pendiente_contacto')
-    5. Si hay email: enviar y actualizar a 'notificado' si éxito
-    6. Si no hay email: enviar alerta de falta contacto
+    Procesa egresos confirmados AGRUPADOS por (cpb_ano, cpb_num, productor_cod):
+    1. Agrupa filas de Softland por comprobante+productor (en caso de múltiples facturas)
+    2. Para cada grupo: suma montos y acumula facturas
+    3. Verificar que no fue notificado antes (evitar duplicados)
+    4. Buscar comprobante en Drive
+    5. Obtener contacto y decidir estado inicial
+    6. Registrar en Supabase con estado apropiado ('confirmado' o 'pendiente_contacto')
+    7. Si hay email: enviar UN correo por grupo (con todas sus facturas) y actualizar a 'notificado' si éxito
+    8. Si no hay email: enviar alerta de falta contacto
 
     Estados:
     - 'confirmado': match confirmado, en proceso de notificar (tiene email)
@@ -162,70 +170,100 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> int:
     - 'notificado': email enviado exitosamente
 
     Args:
-        confirmados: Lista de egresos que cuadraron
+        confirmados: Lista de egresos que cuadraron (puede tener múltiples filas por productor)
         fecha_pago: Fecha de la cartola
 
     Returns:
-        Cantidad de pagos procesados exitosamente (solo notificados)
+        Tupla: (cantidad_procesados, set_de_ids_nominas_procesadas)
     """
-    procesados = 0
+    from collections import defaultdict
 
+    procesados = 0
+    nominas_procesadas = set()
+
+    # PASO 0: Agrupar por (cpb_ano, cpb_num, productor_cod)
+    # Esto maneja el caso donde un productor tiene múltiples facturas en el mismo comprobante
+    grupos = defaultdict(list)
     for egreso in confirmados:
-        cpb_ano = egreso.get('CpbAno', '')
-        cpb_num = egreso.get('CpbNum', 'N/A')
-        monto = egreso.get('monto_egreso', 0)
-        productor_cod = egreso.get('productor_cod', 'N/A')
+        clave = (egreso.get('CpbAno', ''), egreso.get('CpbNum', 'N/A'), egreso.get('productor_cod', 'N/A'))
+        grupos[clave].append(egreso)
+
+    logger.info(f"Confirmados agrupados: {len(grupos)} grupos únicos (comprobante+productor)")
+
+    # PASO 1: Iterar sobre GRUPOS, no filas individuales
+    for (cpb_ano, cpb_num, productor_cod), egresos_grupo in grupos.items():
+        # Sumar montos individuales (monto_productor) del productor en este comprobante
+        monto_total = sum(float(e.get('monto_productor', 0)) for e in egresos_grupo)
+
+        # Acumular todas las facturas del grupo
+        # Extraer número de factura real de la glosa (FT ó F1 + número)
+        import re
+        facturas = []
+        for egreso in egresos_grupo:
+            glosa = egreso.get('glosa', '')
+
+            # Extraer número de factura: patrón "Pago: FT 9167; ..." o "Pago: F1 2267; ..."
+            factura_numero = "N/A"
+            if glosa:
+                match = re.search(r'(FT|F1)\s*(\d+)', glosa)
+                if match:
+                    factura_numero = f"{match.group(1)} {match.group(2)}"
+
+            facturas.append({
+                'numero': factura_numero,  # "FT 9167" — número de factura real
+                'fecha': str(fecha_pago),
+                'fecha_pago': str(fecha_pago),
+                'monto': float(egreso.get('monto_productor', 0))
+            })
 
         try:
-            logger.info(f"Procesando confirmado: Comprobante {cpb_num} | ${monto} | Productor {productor_cod}")
+            logger.info(f"Procesando grupo: Comprobante {cpb_num} | Productor {productor_cod} | ${monto_total:,.0f} | {len(egresos_grupo)} factura(s)")
 
-            # PASO 0: Verificar duplicado
+            # PASO 2: Verificar duplicado (una sola verificación por grupo)
             if verificar_pago_ya_notificado(cpb_ano, cpb_num, productor_cod):
                 logger.info(f"  [SKIP] SALTADO: Ya fue notificado en corrida anterior")
                 continue
 
-            # PASO 1: Obtener contacto del productor (con fallback)
-            email_productor, email_dte, email_contacto = obtener_contacto_productor(productor_cod)
+            # PASO 3: Obtener contacto del productor (con fallback)
+            email_productor, email_dte, email_contacto, productor_nombre = obtener_contacto_productor(productor_cod)
             email_final = email_productor or email_dte or email_contacto
+            if not productor_nombre:
+                productor_nombre = productor_cod  # Fallback al código si no hay nombre
 
-            # PASO 2: Buscar comprobante
-            ruta_local, ruta_drive = buscar_comprobante_en_drive(
-                monto, str(fecha_pago), productor_cod
+            # PASO 4: Buscar comprobante (usar primer egreso del grupo para búsqueda)
+            primer_egreso = egresos_grupo[0]
+            _, ruta_drive = buscar_comprobante_en_drive(
+                monto_total, str(fecha_pago), productor_cod
             )
             logger.info(f"  Comprobante: {ruta_drive or 'no encontrado'}")
 
-            # PASO 3: Decidir estado inicial según disponibilidad de email
+            # PASO 5: Decidir estado inicial según disponibilidad de email
             if email_final:
                 # Caso A: Hay email — registrar como 'confirmado' e intentar envío
                 registrar_pago(
                     cpb_ano=cpb_ano,
                     cpb_num=cpb_num,
-                    monto=monto,
+                    monto=monto_total,
                     fecha_pago=fecha_pago,
                     productor_cod=productor_cod,
-                    cuenta_banco=egreso.get('cuenta_banco', ''),
+                    cuenta_banco=primer_egreso.get('cuenta_banco', ''),
                     estado='confirmado',
-                    intentos_match=egreso.get('intentos_match', 1),
+                    intentos_match=primer_egreso.get('intentos_match', 1),
                     comprobante_drive_path=ruta_drive
                 )
                 logger.info(f"  [OK] Registrado en Supabase (estado=confirmado)")
 
-                # PASO 4A: Enviar email
-                facturas = [{
-                    'numero': cpb_num,
-                    'fecha': str(fecha_pago),
-                    'monto': monto
-                }]
+                # PASO 6A: Enviar UN email por grupo (con TODAS sus facturas)
                 email_enviado = enviar_notificacion_pago(
                     productor_email=email_final,
                     zonal_email=None,
-                    monto_total=monto,
+                    monto_total=monto_total,
                     facturas=facturas,
                     comprobante_path=ruta_drive or "",
-                    productor_nombre=productor_cod
+                    productor_nombre=productor_nombre
                 )
 
-                # PASO 5A: Actualizar a 'notificado' SOLO si email se envió
+                # PASO 7A: Actualizar a 'notificado' SOLO si email se envió
                 if email_enviado:
                     actualizar_pago_a_notificado(cpb_ano, cpb_num, productor_cod)
                     logger.info(f"  [OK] Email enviado y estado actualizado a notificado")
@@ -238,26 +276,31 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> int:
                 registrar_pago(
                     cpb_ano=cpb_ano,
                     cpb_num=cpb_num,
-                    monto=monto,
+                    monto=monto_total,
                     fecha_pago=fecha_pago,
                     productor_cod=productor_cod,
-                    cuenta_banco=egreso.get('cuenta_banco', ''),
+                    cuenta_banco=primer_egreso.get('cuenta_banco', ''),
                     estado='pendiente_contacto',
-                    intentos_match=egreso.get('intentos_match', 1),
+                    intentos_match=primer_egreso.get('intentos_match', 1),
                     comprobante_drive_path=ruta_drive
                 )
                 logger.info(f"  [OK] Registrado en Supabase (estado=pendiente_contacto)")
 
-                # PASO 4B: Enviar alerta de falta contacto
-                enviar_alerta_desarrollador_falta_contacto(egreso)
+                # PASO 6B: Enviar alerta de falta contacto (una sola alerta por grupo)
+                enviar_alerta_desarrollador_falta_contacto(primer_egreso)
                 logger.info(f"  [OK] Alerta de falta contacto enviada")
 
         except Exception as e:
-            logger.error(f"Error procesando confirmado {cpb_num}: {e}")
+            logger.error(f"Error procesando grupo {cpb_num}/{productor_cod}: {e}")
             continue
 
-    logger.info(f"Confirmados procesados: {procesados}/{len(confirmados)}")
-    return procesados
+        # Rastrear nóminas procesadas
+        if 'id_nomina' in egresos_grupo[0]:
+            nominas_procesadas.add(egresos_grupo[0]['id_nomina'])
+
+    logger.info(f"Grupos procesados: {procesados}/{len(grupos)}")
+    logger.info(f"Nóminas procesadas: {len(nominas_procesadas)}")
+    return procesados, nominas_procesadas
 
 
 def procesar_no_cuadra(no_cuadra: List[Dict]) -> int:
@@ -288,7 +331,7 @@ def procesar_no_cuadra(no_cuadra: List[Dict]) -> int:
                 cpb_ano=cpb_ano,
                 cpb_num=cpb_num,
                 monto=monto,
-                fecha_pago=egreso.get('CpbFec'),
+                fecha_pago=egreso.get('fecha_carga'),
                 productor_cod=egreso.get('productor_cod'),
                 cuenta_banco=egreso.get('cuenta_banco', ''),
                 estado='rechazado',
@@ -342,19 +385,19 @@ def main(fecha_testing: str = None):
         logger.info("PASO 1: Consultando Softland (últimos 30 días)...")
         logger.info("=" * 80)
 
-        egresos = obtener_egresos_softland(dias_atras=30)
+        egresos = obtener_egresos_softland(dias_atras=30, fecha_hasta=fecha_hoy)
         logger.info(f"[OK] Egresos obtenidos: {len(egresos)}")
 
         if not egresos:
             logger.info("No hay egresos para procesar")
             return
 
-        # PASO 2: Descargar cartola
+        # PASO 2: Descargar cartolas del rango completo (30 días)
         logger.info("=" * 80)
-        logger.info("PASO 2: Descargando cartola más reciente...")
+        logger.info("PASO 2: Descargando cartolas (últimos 30 días)...")
         logger.info("=" * 80)
 
-        cartola = descargar_cartola_mas_reciente(BANCO_CONSORCIO, dias_atras=30)
+        cartola = descargar_cartolas_rango(BANCO_CONSORCIO, dias_atras=30, fecha_hasta=fecha_hoy)
         if cartola is None or cartola.empty:
             logger.warning("No se encontró cartola. Abortando.")
             return
@@ -381,14 +424,48 @@ def main(fecha_testing: str = None):
         logger.info(f"  [PAUSE] Sin match: {len(sin_match)}")
         logger.info(f"  [FAIL] No cuadra: {len(no_cuadra)}")
 
+        # Detalles de confirmados
+        if confirmados:
+            logger.info("")
+            logger.info("DETALLE CONFIRMADOS:")
+            for idx, egreso in enumerate(confirmados, 1):
+                logger.info(f"  {idx}. CpbNum: {egreso.get('CpbNum', 'N/A')} | "
+                          f"Productor: {egreso.get('productor_cod', 'N/A')} | "
+                          f"Monto: ${egreso.get('monto_egreso', 0):,.0f} | "
+                          f"Fecha: {egreso.get('fecha_carga', 'N/A')}")
+
+        # Detalles de no_cuadra
+        if no_cuadra:
+            logger.info("")
+            logger.info("DETALLE NO CUADRA:")
+            for idx, egreso in enumerate(no_cuadra, 1):
+                motivo = egreso.get('motivo', 'monto no coincide')
+                logger.info(f"  {idx}. CpbNum: {egreso.get('CpbNum', 'N/A')} | "
+                          f"Productor: {egreso.get('productor_cod', 'N/A')} | "
+                          f"Monto: ${egreso.get('monto_egreso', 0):,.0f} | "
+                          f"Fecha: {egreso.get('fecha_carga', 'N/A')} | "
+                          f"Motivo: {motivo}")
+
         # PASO 4: Procesar confirmados
+        nominas_procesadas = set()
         if confirmados:
             logger.info("=" * 80)
             logger.info("PASO 4: Procesando confirmados...")
             logger.info("=" * 80)
-            procesados = procesar_confirmados(confirmados, fecha_hoy)
+            procesados, nominas_procesadas = procesar_confirmados(confirmados, fecha_hoy)
         else:
             procesados = 0
+
+        # PASO 4B: Marcar nóminas como 'procesado' en Supabase
+        if nominas_procesadas:
+            logger.info("=" * 80)
+            logger.info(f"PASO 4B: Marcando {len(nominas_procesadas)} nóminas como procesadas...")
+            logger.info("=" * 80)
+            for id_nomina in nominas_procesadas:
+                if marcar_nomina_procesada(id_nomina):
+                    logger.info(f"  [OK] Nómina {id_nomina} marcada como procesada")
+                else:
+                    logger.warning(f"  [FAIL] No se pudo marcar nómina {id_nomina}")
 
         # PASO 5: Procesar no cuadra
         if no_cuadra:

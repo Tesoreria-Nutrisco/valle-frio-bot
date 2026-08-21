@@ -28,11 +28,11 @@
             <div style="margin-bottom:8px;"><strong>Comprobante:</strong> {{COMPROBANTE}}</div>
             <div style="margin-bottom:8px;"><strong>Fecha:</strong> {{FECHA_PAGO}}</div>
             <div style="margin-bottom:8px;"><strong>Monto:</strong> {{MONTO}}</div>
-            <div style="margin-bottom:8px;"><strong>Productor:</strong> {{PRODUCTOR_NOMBRE}} (RUT {{PRODUCTOR_COD}})</div>
-            <div style="margin-bottom:8px;"><strong>Correo productor (EMail):</strong> <span style="color:#a32d2d;">{{PRODUCTOR_EMAIL}}</span></div>
-            <div style="margin-bottom:8px;"><strong>Correo productor (eMailDTE):</strong> <span style="color:#a32d2d;">{{PRODUCTOR_EMAIL_DTE}}</span></div>
-            <div style="margin-bottom:8px;"><strong>Correo contacto (cwtaxco):</strong> <span style="color:#a32d2d;">{{PRODUCTOR_EMAIL_CONTACTO}}</span></div>
-            <div><strong>Correo agrónomo zonal:</strong> <span style="color:#a32d2d;">{{ZONAL_EMAIL}}</span></div>
+            <div style="margin-bottom:8px;"><strong>Productor:</strong> {{PRODUCTOR_NOMBRE}} (RUT {{PRODUCTOR_RUT}})</div>
+            <div style="margin-bottom:8px;"><strong>Correo productor (EMail):</strong> <span style="color:#a32d2d;">no registrado</span></div>
+            <div style="margin-bottom:8px;"><strong>Correo productor (eMailDTE):</strong> <span style="color:#a32d2d;">no registrado</span></div>
+            <div style="margin-bottom:8px;"><strong>Correo contacto (cwtaxco):</strong> <span style="color:#a32d2d;">no registrado</span></div>
+            <div><strong>Correo agrónomo zonal:</strong> <span style="color:#a32d2d;">no disponible</span></div>
           </td>
         </tr>
       </table>
@@ -41,13 +41,7 @@
 
   <tr>
     <td style="padding:0 28px 20px;">
-      <p style="font-size:12.5px; color:#5f5e5a; margin:0; line-height:1.6;"><strong>Acción sugerida:</strong> completar el correo del productor en <code>cwtauxi</code> (campo EMail o eMailDTE), o registrar el contacto del agrónomo zonal correspondiente. El pago queda en la cola de revisión manual hasta que se complete un contacto — no se reintenta automáticamente.</p>
-    </td>
-  </tr>
-
-  <tr>
-    <td style="padding:0 28px 28px;">
-      <a href="#" style="display:inline-block; background:#ba7517; color:#ffffff; text-decoration:none; font-size:13px; font-weight:bold; padding:10px 20px; border-radius:6px;">Ver registro en Supabase</a>
+      <p style="font-size:12.5px; color:#5f5e5a; margin:0; line-height:1.6;"><strong>Acción sugerida:</strong> completar el correo del productor en <code>cwtauxi</code> (campo EMail o eMailDTE), o registrar el contacto del agrónomo zonal correspondiente.</p>
     </td>
   </tr>
 
