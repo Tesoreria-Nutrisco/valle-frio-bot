@@ -7,24 +7,20 @@ import logging
 import requests
 import os
 import base64
+import sys
 from pathlib import Path
 from typing import Optional, List, Dict
 from datetime import datetime
 
-import importlib.util
-import sys
-
-config_path = Path(__file__).parent / "config.py"
-spec = importlib.util.spec_from_file_location("bot2_config", config_path)
-config_module = importlib.util.module_from_spec(spec)
-sys.modules["bot2_config"] = config_module
-spec.loader.exec_module(config_module)
-
-GMAIL_SENDER = config_module.GMAIL_SENDER
-GMAIL_REPLY_TO = config_module.GMAIL_REPLY_TO
-TEMPLATES_PATH = config_module.TEMPLATES_PATH
-MODO_TEST = config_module.MODO_TEST
-CORREO_PRUEBA = config_module.CORREO_PRUEBA
+# Importar config desde el directorio actual (bot2/)
+sys.path.insert(0, str(Path(__file__).parent))
+from config import (
+    GMAIL_SENDER,
+    GMAIL_REPLY_TO,
+    TEMPLATES_PATH,
+    MODO_TEST,
+    CORREO_PRUEBA,
+)
 
 logger = logging.getLogger(__name__)
 
