@@ -1,18 +1,19 @@
+
 name: execute_bot2
-description: Bot 2 - Reconciliación Softland vs Cartola (TEST)
+description: Bot 2 - Reconciliación Softland vs Cartola
 
 flow:
   entrypoint: bot2_executor:execute_bot2
+  path: .
 
 deployments:
-  - name: bot2-test
-    description: Bot 2 - Reconciliación Softland vs Cartola (TEST)
+  - name: bot2-reconciliation
+    description: Bot 2 - Reconciliación Softland vs Cartola
     entrypoint: bot2_executor:execute_bot2
     tags:
       - bot2
       - reconciliacion
-      - test
     parameters:
       fecha_prueba: null
-    schedules: []
-    work_queue: default
+    work_pool_name: lenovo-rpa-pool
+    version: "1.0.0"
