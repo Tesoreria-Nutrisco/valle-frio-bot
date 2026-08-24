@@ -342,43 +342,29 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         await asyncio.sleep(1)
         logger.info("Menú de Pagos cargado")
 
-        # Usar JavaScript pero SER MÁS ESPECÍFICO: buscar solo en la sección de Pagos
-        await page.evaluate("""
-            (function() {
-                // Buscar específicamente el <a> que es hijo directo o cercano a "Pago nómina"
-                const allAnchors = document.querySelectorAll('a');
-
-                for (let i = 0; i < allAnchors.length; i++) {
-                    const link = allAnchors[i];
-
-                    // Verificar que este link sea "Consultar"
-                    if (!link.textContent.includes('Consultar')) continue;
-
-                    // Verificar que esté en la sección correcta (antes de "Botón de pago")
-                    // Buscar hacia atrás en el DOM para encontrar "Pago nómina" antes de este link
-                    let foundPagoNomina = false;
-                    let parent = link.parentElement;
-
-                    for (let j = 0; j < 10; j++) {
-                        if (!parent) break;
-                        if (parent.textContent.includes('Pago nómina') &&
-                            parent.textContent.includes('Ingresar') &&
-                            !parent.textContent.includes('Botón de pago')) {
-                            foundPagoNomina = true;
-                            break;
+        # Click directo en el link "Consultar" usando locator
+        try:
+            await page.click("a:has(span.ng-binding:has-text('Consultar'))", timeout=5000)
+            logger.info("Click en 'Consultar' (método directo)")
+        except Exception as e:
+            logger.warning(f"Click directo falló, intentando JavaScript: {e}")
+            # Fallback: usar JavaScript si el click directo falla
+            await page.evaluate("""
+                (function() {
+                    const allAnchors = document.querySelectorAll('a');
+                    for (let i = 0; i < allAnchors.length; i++) {
+                        const link = allAnchors[i];
+                        if (link.textContent.includes('Consultar')) {
+                            link.click();
+                            return true;
                         }
-                        parent = parent.parentElement;
                     }
+                    return false;
+                })()
+            """)
+            logger.info("Click en 'Consultar' (método JavaScript)")
 
-                    if (foundPagoNomina) {
-                        link.click();
-                        return;
-                    }
-                }
-            })()
-        """)
         await asyncio.sleep(3)
-        logger.info("Click en 'Consultar' (Pago nómina)")
 
         # Estado de Firmas debería estar activo por defecto
         # Esperar tabla de nóminas
