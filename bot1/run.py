@@ -504,37 +504,15 @@ class BotConsorcio:
                 ids_nominas = []
 
                 try:
-                    # Navegar a Pagos y clickear Consultar
-                    logger.info("Navegando a Pagos...")
-                    pagos_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/pagos'
-                    await self.page.goto(pagos_url, wait_until='networkidle', timeout=30000)
-                    logger.info("✓ En página Pagos")
-                    await asyncio.sleep(2)
+                    # Clickear el botón "Pagos" en el menú
+                    logger.info("Clickeando botón 'Pagos' en el menú...")
+                    await self.page.click("text=Pagos", timeout=10000)
+                    logger.info("✓ Clickeado Pagos")
+                    await asyncio.sleep(3)
 
-                    # Buscar y clickear el link "Consultar" (en Pago nómina)
-                    logger.info("Buscando link 'Consultar' en Pago nómina...")
-                    consultar_encontrado = await self.page.evaluate("""
-                        (function() {
-                            const allLinks = document.querySelectorAll('a');
-                            console.log('Total de links:', allLinks.length);
-
-                            // Filtrar por links que digan "Consultar"
-                            for (let link of allLinks) {
-                                const text = link.textContent.trim();
-                                if (text === 'Consultar') {
-                                    console.log('Encontrado Consultar');
-                                    link.click();
-                                    return true;
-                                }
-                            }
-                            return false;
-                        })()
-                    """)
-
-                    if not consultar_encontrado:
-                        logger.error("No se encontró link Consultar")
-                        raise Exception("No se pudo encontrar Consultar")
-
+                    # Clickear "Consultar" (en Pago nómina)
+                    logger.info("Clickeando 'Consultar'...")
+                    await self.page.click("text=Consultar", timeout=10000)
                     logger.info("✓ Clickeado Consultar")
                     await asyncio.sleep(3)
 
