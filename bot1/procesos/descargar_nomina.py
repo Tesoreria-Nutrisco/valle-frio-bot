@@ -337,18 +337,39 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         await asyncio.sleep(3)
         logger.info("Click en menú 'Pagos'")
 
-        # Esperar a que aparezca "Consultar" bajo Pago nómina
+        # Primero: Click en "Ingresar" bajo Pago nómina
+        await page.wait_for_selector("a:has(span.ng-binding:has-text('Ingresar'))", timeout=15000)
+        await asyncio.sleep(1)
+        try:
+            await page.click("a:has(span.ng-binding:has-text('Ingresar'))", timeout=5000)
+            logger.info("Click en 'Ingresar' (Pago nómina)")
+        except Exception as e:
+            logger.warning(f"Click en Ingresar falló: {e}")
+            await page.evaluate("""
+                (function() {
+                    const allAnchors = document.querySelectorAll('a');
+                    for (let i = 0; i < allAnchors.length; i++) {
+                        const link = allAnchors[i];
+                        if (link.textContent.includes('Ingresar')) {
+                            link.click();
+                            return true;
+                        }
+                    }
+                    return false;
+                })()
+            """)
+            logger.info("Click en 'Ingresar' (JavaScript fallback)")
+
+        await asyncio.sleep(3)
+
+        # Segundo: Click en "Consultar" para ver la tabla de nóminas
         await page.wait_for_selector("a:has(span.ng-binding:has-text('Consultar'))", timeout=15000)
         await asyncio.sleep(1)
-        logger.info("Menú de Pagos cargado")
-
-        # Click directo en el link "Consultar" usando locator
         try:
             await page.click("a:has(span.ng-binding:has-text('Consultar'))", timeout=5000)
             logger.info("Click en 'Consultar' (método directo)")
         except Exception as e:
-            logger.warning(f"Click directo falló, intentando JavaScript: {e}")
-            # Fallback: usar JavaScript si el click directo falla
+            logger.warning(f"Click en Consultar falló, intentando JavaScript: {e}")
             await page.evaluate("""
                 (function() {
                     const allAnchors = document.querySelectorAll('a');
