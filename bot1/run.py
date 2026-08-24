@@ -505,20 +505,12 @@ class BotConsorcio:
 
                 try:
                     # Navegar a Pagos > Consultar (Estado de Firmas)
-                    logger.info("Navegando a Pagos > Consultar...")
+                    logger.info("Navegando a Pagos del menú superior...")
 
-                    # Clickear directamente el link "Pagos" usando locator
-                    # Buscar en el menú superior por atributos y contenido específico
-                    pagos_link = self.page.locator("nav a, [role='tablist'] a").filter(has_text="Pagos").first
-
-                    if await pagos_link.count() > 0:
-                        await pagos_link.click()
-                        logger.info("✓ Pagos clickeado (Locator)")
-                    else:
-                        logger.warning("No se encontró Pagos con locator, intentando con XPath...")
-                        # Fallback: usar XPath
-                        await self.page.click("xpath=//a[contains(text(), 'Pagos')]", timeout=5000)
-                        logger.info("✓ Pagos clickeado (XPath)")
+                    # Usar XPath para buscar el link "Pagos" en el menú superior
+                    # XPath: buscar <a> que tenga texto exacto "Pagos" y que sea directo en nav
+                    await self.page.click("xpath=(//nav//a[normalize-space()='Pagos'] | //*[@role='tablist']//a[normalize-space()='Pagos'])[1]", timeout=10000)
+                    logger.info("✓ Pagos clickeado")
 
                     await asyncio.sleep(3)
 

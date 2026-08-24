@@ -333,16 +333,9 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         # Click en "Pagos" del menú superior
         logger.info("Navegando a menú Pagos...")
 
-        # Usar Playwright locator para clickear "Pagos"
-        pagos_link = page.locator("nav a, [role='tablist'] a").filter(has_text="Pagos").first
-
-        if await pagos_link.count() > 0:
-            await pagos_link.click()
-            logger.info("✓ Click en menú 'Pagos' (Locator)")
-        else:
-            logger.warning("No se encontró Pagos con locator, intentando con XPath...")
-            await page.click("xpath=//a[contains(text(), 'Pagos')]", timeout=5000)
-            logger.info("✓ Click en menú 'Pagos' (XPath)")
+        # Usar XPath para buscar el link "Pagos" EXACTO en el menú superior
+        await page.click("xpath=(//nav//a[normalize-space()='Pagos'] | //*[@role='tablist']//a[normalize-space()='Pagos'])[1]", timeout=10000)
+        logger.info("✓ Click en menú 'Pagos'")
 
         await asyncio.sleep(3)
 
