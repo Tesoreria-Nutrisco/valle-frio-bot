@@ -34,7 +34,12 @@ _LOGOS_CACHE = {}
 def obtener_logo_base64(nombre_logo: str) -> str:
     """Obtiene logo en base64, cacheado en memoria."""
     if nombre_logo not in _LOGOS_CACHE:
-        logo_path = TEMPLATES_PATH.parent / "assets" / f"{nombre_logo}.png"
+        # Buscar en templates/
+        logo_path = TEMPLATES_PATH / f"logo_{nombre_logo}.png"
+        if not logo_path.exists():
+            # Fallback: buscar sin prefijo
+            logo_path = TEMPLATES_PATH / f"{nombre_logo}.png"
+
         try:
             with open(logo_path, "rb") as f:
                 _LOGOS_CACHE[nombre_logo] = base64.b64encode(f.read()).decode("utf-8")
