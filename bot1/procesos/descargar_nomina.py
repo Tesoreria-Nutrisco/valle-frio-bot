@@ -332,24 +332,19 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
 
         # Click en "Pagos" del menú superior
         logger.info("Navegando a menú Pagos...")
-        await page.evaluate("""
-            (function() {
-                // Buscar específicamente en la barra de navegación superior
-                const navLinks = document.querySelectorAll('nav a, [role="tablist"] a');
-                for (let i = 0; i < navLinks.length; i++) {
-                    const link = navLinks[i];
-                    const text = link.textContent.trim();
-                    if (text === 'Pagos') {
-                        console.log('Encontrado Pagos en menú superior, clickeando...');
-                        link.click();
-                        return true;
-                    }
-                }
-                return false;
-            })()
-        """)
+
+        # Usar Playwright locator para clickear "Pagos"
+        pagos_link = page.locator("nav a, [role='tablist'] a").filter(has_text="Pagos").first
+
+        if await pagos_link.count() > 0:
+            await pagos_link.click()
+            logger.info("✓ Click en menú 'Pagos' (Locator)")
+        else:
+            logger.warning("No se encontró Pagos con locator, intentando con XPath...")
+            await page.click("xpath=//a[contains(text(), 'Pagos')]", timeout=5000)
+            logger.info("✓ Click en menú 'Pagos' (XPath)")
+
         await asyncio.sleep(3)
-        logger.info("✓ Click en menú 'Pagos'")
 
         # Paso 2a: Intentar click en "Ingresar" si existe (opcional)
         logger.info("Buscando botón 'Ingresar'...")
