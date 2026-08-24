@@ -331,11 +331,25 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
             fecha_busqueda = datetime.now()
 
         # Click en "Pagos" del menú superior
-        await page.wait_for_selector("nav a:has-text('Pagos'), [role='tablist'] a:has-text('Pagos')", timeout=30000)
-        await asyncio.sleep(1)
-        await page.click("nav a:has-text('Pagos'), [role='tablist'] a:has-text('Pagos')", timeout=10000)
+        logger.info("Navegando a menú Pagos...")
+        await page.evaluate("""
+            (function() {
+                const allAnchors = document.querySelectorAll('a');
+                for (let i = 0; i < allAnchors.length; i++) {
+                    const link = allAnchors[i];
+                    const text = link.textContent.trim();
+                    if (text === 'Pagos') {
+                        console.log('Encontrado Pagos, clickeando...');
+                        link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                        link.click();
+                        return true;
+                    }
+                }
+                return false;
+            })()
+        """)
         await asyncio.sleep(3)
-        logger.info("Click en menú 'Pagos'")
+        logger.info("✓ Click en menú 'Pagos'")
 
         # Paso 2a: Intentar click en "Ingresar" si existe (opcional)
         logger.info("Buscando botón 'Ingresar'...")

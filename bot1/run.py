@@ -506,9 +506,24 @@ class BotConsorcio:
                 try:
                     # Navegar a Pagos > Consultar (Estado de Firmas)
                     logger.info("Navegando a Pagos > Consultar...")
-                    await self.page.wait_for_selector("nav a:has-text('Pagos')", timeout=60000)
-                    await asyncio.sleep(1)
-                    await self.page.click("nav a:has-text('Pagos')", timeout=10000)
+
+                    # Usar JavaScript puro para clickear "Pagos" correctamente
+                    await self.page.evaluate("""
+                        (function() {
+                            const allAnchors = document.querySelectorAll('a');
+                            for (let i = 0; i < allAnchors.length; i++) {
+                                const link = allAnchors[i];
+                                const text = link.textContent.trim();
+                                if (text === 'Pagos') {
+                                    console.log('Encontrado Pagos, clickeando...');
+                                    link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                    link.click();
+                                    return true;
+                                }
+                            }
+                            return false;
+                        })()
+                    """)
                     await asyncio.sleep(3)
                     logger.info("✓ Pagos clickeado")
 
