@@ -337,54 +337,56 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         await asyncio.sleep(3)
         logger.info("Click en menú 'Pagos'")
 
-        # Primero: Click en "Ingresar" bajo Pago nómina
+        # Paso 2a: Intentar click en "Ingresar" si existe (opcional)
         logger.info("Buscando botón 'Ingresar'...")
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
 
-        # Usar JavaScript directo para hacer click en Ingresar
-        ingreso_exitoso = await page.evaluate("""
+        ingreso_necesario = await page.evaluate("""
             (function() {
                 const allAnchors = document.querySelectorAll('a');
-                console.log('Total de links encontrados:', allAnchors.length);
-
                 for (let i = 0; i < allAnchors.length; i++) {
                     const link = allAnchors[i];
                     const text = link.textContent.trim();
-                    console.log('Link', i, ':', text);
-
-                    if (text === 'Ingresar' || text.includes('Ingresar')) {
-                        console.log('Encontrado Ingresar, clickeando...');
-                        link.scrollIntoView({behavior: 'smooth', block: 'center'});
-                        link.click();
+                    if (text === 'Ingresar') {
                         return true;
                     }
                 }
-                console.log('No se encontró Ingresar');
                 return false;
             })()
         """)
 
-        if ingreso_exitoso:
+        if ingreso_necesario:
+            logger.info("Encontrado 'Ingresar', clickeando...")
+            await page.evaluate("""
+                (function() {
+                    const allAnchors = document.querySelectorAll('a');
+                    for (let i = 0; i < allAnchors.length; i++) {
+                        const link = allAnchors[i];
+                        if (link.textContent.trim() === 'Ingresar') {
+                            link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                            link.click();
+                            return true;
+                        }
+                    }
+                    return false;
+                })()
+            """)
             logger.info("✓ Click en 'Ingresar' exitoso")
+            await asyncio.sleep(3)
         else:
-            logger.warning("⚠ No se pudo encontrar/clickear 'Ingresar'")
+            logger.info("ℹ No hay botón 'Ingresar', continuando a 'Consultar' directamente")
 
-        await asyncio.sleep(3)
-
-        # Segundo: Click en "Consultar" para ver la tabla de nóminas
-        logger.info("Buscando botón 'Consultar'...")
-        await asyncio.sleep(2)
+        # Paso 2b: Click en "Consultar" para ver la tabla de nóminas
+        logger.info("Clickeando en 'Consultar'...")
+        await asyncio.sleep(1)
 
         consultar_exitoso = await page.evaluate("""
             (function() {
                 const allAnchors = document.querySelectorAll('a');
-
                 for (let i = 0; i < allAnchors.length; i++) {
                     const link = allAnchors[i];
                     const text = link.textContent.trim();
-
-                    if (text === 'Consultar' || text.includes('Consultar')) {
-                        console.log('Encontrado Consultar, clickeando...');
+                    if (text === 'Consultar') {
                         link.scrollIntoView({behavior: 'smooth', block: 'center'});
                         link.click();
                         return true;
@@ -397,7 +399,8 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         if consultar_exitoso:
             logger.info("✓ Click en 'Consultar' exitoso")
         else:
-            logger.warning("⚠ No se pudo encontrar/clickear 'Consultar'")
+            logger.error("✗ No se pudo clickear 'Consultar'")
+            raise Exception("No se pudo hacer click en botón 'Consultar'")
 
         await asyncio.sleep(3)
 
