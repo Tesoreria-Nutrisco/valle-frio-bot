@@ -330,13 +330,35 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         if fecha_busqueda is None:
             fecha_busqueda = datetime.now()
 
-        # Navegar directamente a Nóminas > Consultar (Estado de Firmas)
-        logger.info("Navegando a Nóminas > Consultar...")
+        # Navegar a Pagos
+        logger.info("Navegando a Pagos...")
+        pagos_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/pagos'
+        await page.goto(pagos_url, wait_until='networkidle', timeout=30000)
+        logger.info("✓ En página Pagos")
+        await asyncio.sleep(2)
 
-        nominas_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/nominas/consultar'
-        await page.goto(nominas_url, wait_until='networkidle', timeout=30000)
-        logger.info("✓ Navegado a Nóminas > Consultar")
+        # Buscar y clickear "Consultar"
+        logger.info("Buscando link 'Consultar'...")
+        consultar_encontrado = await page.evaluate("""
+            (function() {
+                const allLinks = document.querySelectorAll('a');
+                for (let link of allLinks) {
+                    const text = link.textContent.trim();
+                    if (text === 'Consultar') {
+                        console.log('Encontrado Consultar, clickeando...');
+                        link.click();
+                        return true;
+                    }
+                }
+                return false;
+            })()
+        """)
 
+        if not consultar_encontrado:
+            logger.error("No se encontró link Consultar")
+            raise Exception("No se pudo encontrar Consultar")
+
+        logger.info("✓ Clickeado Consultar")
         await asyncio.sleep(3)
 
         # Estado de Firmas debería estar activo por defecto

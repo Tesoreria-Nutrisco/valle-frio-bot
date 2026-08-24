@@ -504,14 +504,38 @@ class BotConsorcio:
                 ids_nominas = []
 
                 try:
-                    # Navegar directamente a Nóminas > Consultar (Estado de Firmas)
-                    logger.info("Navegando a Nóminas > Consultar...")
+                    # Navegar a Pagos y clickear Consultar
+                    logger.info("Navegando a Pagos...")
+                    pagos_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/pagos'
+                    await self.page.goto(pagos_url, wait_until='networkidle', timeout=30000)
+                    logger.info("✓ En página Pagos")
+                    await asyncio.sleep(2)
 
-                    # URL directa para nóminas (consultar = estado de firmas)
-                    nominas_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/nominas/consultar'
-                    await self.page.goto(nominas_url, wait_until='networkidle', timeout=30000)
-                    logger.info(f"✓ Navegado a Nóminas > Consultar")
+                    # Buscar y clickear el link "Consultar" (en Pago nómina)
+                    logger.info("Buscando link 'Consultar' en Pago nómina...")
+                    consultar_encontrado = await self.page.evaluate("""
+                        (function() {
+                            const allLinks = document.querySelectorAll('a');
+                            console.log('Total de links:', allLinks.length);
 
+                            // Filtrar por links que digan "Consultar"
+                            for (let link of allLinks) {
+                                const text = link.textContent.trim();
+                                if (text === 'Consultar') {
+                                    console.log('Encontrado Consultar');
+                                    link.click();
+                                    return true;
+                                }
+                            }
+                            return false;
+                        })()
+                    """)
+
+                    if not consultar_encontrado:
+                        logger.error("No se encontró link Consultar")
+                        raise Exception("No se pudo encontrar Consultar")
+
+                    logger.info("✓ Clickeado Consultar")
                     await asyncio.sleep(3)
 
                     try:
