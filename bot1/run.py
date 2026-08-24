@@ -504,73 +504,13 @@ class BotConsorcio:
                 ids_nominas = []
 
                 try:
-                    # Navegar directamente a Pagos usando URL (más confiable que clickear)
-                    logger.info("Navegando a Pagos...")
+                    # Navegar directamente a Nóminas > Consultar (Estado de Firmas)
+                    logger.info("Navegando a Nóminas > Consultar...")
 
-                    # Navegar a la URL de Pagos
-                    pagos_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/pagos'
-                    await self.page.goto(pagos_url, wait_until='networkidle', timeout=30000)
-                    logger.info(f"✓ Navegado a Pagos")
-
-                    await asyncio.sleep(3)
-
-                    # Verificar si existe "Ingresar" (opcional)
-                    ingreso_necesario = await self.page.evaluate("""
-                        (function() {
-                            const allAnchors = document.querySelectorAll('a');
-                            for (let i = 0; i < allAnchors.length; i++) {
-                                const link = allAnchors[i];
-                                const text = link.textContent.trim();
-                                if (text === 'Ingresar') {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        })()
-                    """)
-
-                    if ingreso_necesario:
-                        logger.info("Encontrado 'Ingresar', clickeando...")
-                        await self.page.evaluate("""
-                            (function() {
-                                const allAnchors = document.querySelectorAll('a');
-                                for (let i = 0; i < allAnchors.length; i++) {
-                                    const link = allAnchors[i];
-                                    if (link.textContent.trim() === 'Ingresar') {
-                                        link.scrollIntoView({behavior: 'smooth', block: 'center'});
-                                        link.click();
-                                        return true;
-                                    }
-                                }
-                                return false;
-                            })()
-                        """)
-                        logger.info("✓ Ingresar clickeado")
-                        await asyncio.sleep(3)
-
-                    # Clickear "Consultar" (obligatorio)
-                    logger.info("Clickeando 'Consultar'...")
-                    consultar_exitoso = await self.page.evaluate("""
-                        (function() {
-                            const allAnchors = document.querySelectorAll('a');
-                            for (let i = 0; i < allAnchors.length; i++) {
-                                const link = allAnchors[i];
-                                const text = link.textContent.trim();
-                                if (text === 'Consultar') {
-                                    link.scrollIntoView({behavior: 'smooth', block: 'center'});
-                                    link.click();
-                                    return true;
-                                }
-                            }
-                            return false;
-                        })()
-                    """)
-
-                    if consultar_exitoso:
-                        logger.info("✓ Consultar clickeado")
-                    else:
-                        logger.error("✗ No se pudo hacer click en Consultar")
-                        raise Exception("No se pudo clickear Consultar")
+                    # URL directa para nóminas (consultar = estado de firmas)
+                    nominas_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/nominas/consultar'
+                    await self.page.goto(nominas_url, wait_until='networkidle', timeout=30000)
+                    logger.info(f"✓ Navegado a Nóminas > Consultar")
 
                     await asyncio.sleep(3)
 

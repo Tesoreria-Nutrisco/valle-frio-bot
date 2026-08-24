@@ -330,79 +330,12 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         if fecha_busqueda is None:
             fecha_busqueda = datetime.now()
 
-        # Navegar directamente a Pagos usando URL
-        logger.info("Navegando a Pagos...")
+        # Navegar directamente a Nóminas > Consultar (Estado de Firmas)
+        logger.info("Navegando a Nóminas > Consultar...")
 
-        pagos_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/pagos'
-        await page.goto(pagos_url, wait_until='networkidle', timeout=30000)
-        logger.info("✓ Navegado a Pagos")
-
-        await asyncio.sleep(3)
-
-        # Paso 2a: Intentar click en "Ingresar" si existe (opcional)
-        logger.info("Buscando botón 'Ingresar'...")
-        await asyncio.sleep(1)
-
-        ingreso_necesario = await page.evaluate("""
-            (function() {
-                const allAnchors = document.querySelectorAll('a');
-                for (let i = 0; i < allAnchors.length; i++) {
-                    const link = allAnchors[i];
-                    const text = link.textContent.trim();
-                    if (text === 'Ingresar') {
-                        return true;
-                    }
-                }
-                return false;
-            })()
-        """)
-
-        if ingreso_necesario:
-            logger.info("Encontrado 'Ingresar', clickeando...")
-            await page.evaluate("""
-                (function() {
-                    const allAnchors = document.querySelectorAll('a');
-                    for (let i = 0; i < allAnchors.length; i++) {
-                        const link = allAnchors[i];
-                        if (link.textContent.trim() === 'Ingresar') {
-                            link.scrollIntoView({behavior: 'smooth', block: 'center'});
-                            link.click();
-                            return true;
-                        }
-                    }
-                    return false;
-                })()
-            """)
-            logger.info("✓ Click en 'Ingresar' exitoso")
-            await asyncio.sleep(3)
-        else:
-            logger.info("ℹ No hay botón 'Ingresar', continuando a 'Consultar' directamente")
-
-        # Paso 2b: Click en "Consultar" para ver la tabla de nóminas
-        logger.info("Clickeando en 'Consultar'...")
-        await asyncio.sleep(1)
-
-        consultar_exitoso = await page.evaluate("""
-            (function() {
-                const allAnchors = document.querySelectorAll('a');
-                for (let i = 0; i < allAnchors.length; i++) {
-                    const link = allAnchors[i];
-                    const text = link.textContent.trim();
-                    if (text === 'Consultar') {
-                        link.scrollIntoView({behavior: 'smooth', block: 'center'});
-                        link.click();
-                        return true;
-                    }
-                }
-                return false;
-            })()
-        """)
-
-        if consultar_exitoso:
-            logger.info("✓ Click en 'Consultar' exitoso")
-        else:
-            logger.error("✗ No se pudo clickear 'Consultar'")
-            raise Exception("No se pudo hacer click en botón 'Consultar'")
+        nominas_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/nominas/consultar'
+        await page.goto(nominas_url, wait_until='networkidle', timeout=30000)
+        logger.info("✓ Navegado a Nóminas > Consultar")
 
         await asyncio.sleep(3)
 
