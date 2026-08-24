@@ -504,31 +504,72 @@ class BotConsorcio:
                 ids_nominas = []
 
                 try:
-                    # Navegar a Estado de Firmas (aumentado a 60s de timeout)
+                    # Navegar a Pagos > Consultar (Estado de Firmas)
+                    logger.info("Navegando a Pagos > Consultar...")
                     await self.page.wait_for_selector("nav a:has-text('Pagos')", timeout=60000)
                     await asyncio.sleep(1)
                     await self.page.click("nav a:has-text('Pagos')", timeout=10000)
                     await asyncio.sleep(3)
+                    logger.info("✓ Pagos clickeado")
 
-                    await self.page.evaluate("""
+                    # Verificar si existe "Ingresar" (opcional)
+                    ingreso_necesario = await self.page.evaluate("""
                         (function() {
-                            const links = document.querySelectorAll('a');
-                            for (let link of links) {
-                                if (!link.textContent.includes('Consultar')) continue;
-                                let parent = link.parentElement;
-                                for (let j = 0; j < 10; j++) {
-                                    if (!parent) break;
-                                    if (parent.textContent.includes('Pago nómina') &&
-                                        parent.textContent.includes('Ingresar') &&
-                                        !parent.textContent.includes('Botón de pago')) {
-                                        link.click();
-                                        return;
-                                    }
-                                    parent = parent.parentElement;
+                            const allAnchors = document.querySelectorAll('a');
+                            for (let i = 0; i < allAnchors.length; i++) {
+                                const link = allAnchors[i];
+                                const text = link.textContent.trim();
+                                if (text === 'Ingresar') {
+                                    return true;
                                 }
                             }
+                            return false;
                         })()
                     """)
+
+                    if ingreso_necesario:
+                        logger.info("Encontrado 'Ingresar', clickeando...")
+                        await self.page.evaluate("""
+                            (function() {
+                                const allAnchors = document.querySelectorAll('a');
+                                for (let i = 0; i < allAnchors.length; i++) {
+                                    const link = allAnchors[i];
+                                    if (link.textContent.trim() === 'Ingresar') {
+                                        link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                        link.click();
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            })()
+                        """)
+                        logger.info("✓ Ingresar clickeado")
+                        await asyncio.sleep(3)
+
+                    # Clickear "Consultar" (obligatorio)
+                    logger.info("Clickeando 'Consultar'...")
+                    consultar_exitoso = await self.page.evaluate("""
+                        (function() {
+                            const allAnchors = document.querySelectorAll('a');
+                            for (let i = 0; i < allAnchors.length; i++) {
+                                const link = allAnchors[i];
+                                const text = link.textContent.trim();
+                                if (text === 'Consultar') {
+                                    link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                    link.click();
+                                    return true;
+                                }
+                            }
+                            return false;
+                        })()
+                    """)
+
+                    if consultar_exitoso:
+                        logger.info("✓ Consultar clickeado")
+                    else:
+                        logger.error("✗ No se pudo hacer click en Consultar")
+                        raise Exception("No se pudo clickear Consultar")
+
                     await asyncio.sleep(3)
 
                     try:
