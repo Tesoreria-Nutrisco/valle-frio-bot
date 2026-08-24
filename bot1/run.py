@@ -504,13 +504,13 @@ class BotConsorcio:
                 ids_nominas = []
 
                 try:
-                    # Navegar a Pagos > Consultar (Estado de Firmas)
-                    logger.info("Navegando a Pagos del menú superior...")
+                    # Navegar directamente a Pagos usando URL (más confiable que clickear)
+                    logger.info("Navegando a Pagos...")
 
-                    # Usar XPath para buscar el link "Pagos" en el menú superior
-                    # XPath: buscar <a> que tenga texto exacto "Pagos" y que sea directo en nav
-                    await self.page.click("xpath=(//nav//a[normalize-space()='Pagos'] | //*[@role='tablist']//a[normalize-space()='Pagos'])[1]", timeout=10000)
-                    logger.info("✓ Pagos clickeado")
+                    # Navegar a la URL de Pagos
+                    pagos_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/pagos'
+                    await self.page.goto(pagos_url, wait_until='networkidle', timeout=30000)
+                    logger.info(f"✓ Navegado a Pagos")
 
                     await asyncio.sleep(3)
 

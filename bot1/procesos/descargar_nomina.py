@@ -330,12 +330,12 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         if fecha_busqueda is None:
             fecha_busqueda = datetime.now()
 
-        # Click en "Pagos" del menú superior
-        logger.info("Navegando a menú Pagos...")
+        # Navegar directamente a Pagos usando URL
+        logger.info("Navegando a Pagos...")
 
-        # Usar XPath para buscar el link "Pagos" EXACTO en el menú superior
-        await page.click("xpath=(//nav//a[normalize-space()='Pagos'] | //*[@role='tablist']//a[normalize-space()='Pagos'])[1]", timeout=10000)
-        logger.info("✓ Click en menú 'Pagos'")
+        pagos_url = 'https://servicios.bancoconsorcio.cl/BancaEmpresas/pagos'
+        await page.goto(pagos_url, wait_until='networkidle', timeout=30000)
+        logger.info("✓ Navegado a Pagos")
 
         await asyncio.sleep(3)
 
