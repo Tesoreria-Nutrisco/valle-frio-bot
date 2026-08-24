@@ -336,10 +336,17 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         logger.info("✓ Clickeado Pagos")
         await asyncio.sleep(3)
 
-        # Clickear "Consultar" (en Pago nómina)
-        logger.info("Clickeando 'Consultar'...")
-        await page.click("text=Consultar", timeout=10000)
-        logger.info("✓ Clickeado Consultar")
+        # Clickear "Consultar" específicamente en Pago nómina
+        logger.info("Clickeando 'Consultar' en Pago nómina...")
+        consultar_link = page.locator("text=Pago nómina").locator("../..").locator("text=Consultar").first
+        if await consultar_link.count() > 0:
+            await consultar_link.click()
+            logger.info("✓ Clickeado Consultar (locator anidado)")
+        else:
+            # Fallback: clickear el primer Consultar
+            await page.locator("text=Consultar").first.click()
+            logger.info("✓ Clickeado Consultar (locator simple)")
+
         await asyncio.sleep(3)
 
         # Estado de Firmas debería estar activo por defecto

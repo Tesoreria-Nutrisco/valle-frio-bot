@@ -510,10 +510,18 @@ class BotConsorcio:
                     logger.info("✓ Clickeado Pagos")
                     await asyncio.sleep(3)
 
-                    # Clickear "Consultar" (en Pago nómina)
-                    logger.info("Clickeando 'Consultar'...")
-                    await self.page.click("text=Consultar", timeout=10000)
-                    logger.info("✓ Clickeado Consultar")
+                    # Clickear "Consultar" (específicamente el de Pago nómina)
+                    logger.info("Clickeando 'Consultar' en Pago nómina...")
+                    # Usar locator más específico: buscar el link dentro de la sección de Pago nómina
+                    consultar_link = self.page.locator("text=Pago nómina").locator("../..").locator("text=Consultar").first
+                    if await consultar_link.count() > 0:
+                        await consultar_link.click()
+                        logger.info("✓ Clickeado Consultar (locator anidado)")
+                    else:
+                        # Fallback: clickear el primer "Consultar" que encuentre
+                        await self.page.locator("text=Consultar").first.click()
+                        logger.info("✓ Clickeado Consultar (locator simple)")
+
                     await asyncio.sleep(3)
 
                     try:
