@@ -334,13 +334,13 @@ async def paso_2_descargar_nomina(page, fecha_busqueda=None, skip_count=0):
         logger.info("Navegando a menú Pagos...")
         await page.evaluate("""
             (function() {
-                const allAnchors = document.querySelectorAll('a');
-                for (let i = 0; i < allAnchors.length; i++) {
-                    const link = allAnchors[i];
+                // Buscar específicamente en la barra de navegación superior
+                const navLinks = document.querySelectorAll('nav a, [role="tablist"] a');
+                for (let i = 0; i < navLinks.length; i++) {
+                    const link = navLinks[i];
                     const text = link.textContent.trim();
                     if (text === 'Pagos') {
-                        console.log('Encontrado Pagos, clickeando...');
-                        link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                        console.log('Encontrado Pagos en menú superior, clickeando...');
                         link.click();
                         return true;
                     }

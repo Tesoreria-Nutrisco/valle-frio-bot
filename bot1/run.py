@@ -507,16 +507,17 @@ class BotConsorcio:
                     # Navegar a Pagos > Consultar (Estado de Firmas)
                     logger.info("Navegando a Pagos > Consultar...")
 
-                    # Usar JavaScript puro para clickear "Pagos" correctamente
+                    # Usar JavaScript puro para clickear "Pagos" del menú superior
                     await self.page.evaluate("""
                         (function() {
-                            const allAnchors = document.querySelectorAll('a');
-                            for (let i = 0; i < allAnchors.length; i++) {
-                                const link = allAnchors[i];
+                            // Buscar en la barra de navegación superior
+                            const navLinks = document.querySelectorAll('nav a, [role="tablist"] a');
+                            for (let i = 0; i < navLinks.length; i++) {
+                                const link = navLinks[i];
                                 const text = link.textContent.trim();
+                                // Buscar exactamente "Pagos" en el menú superior
                                 if (text === 'Pagos') {
-                                    console.log('Encontrado Pagos, clickeando...');
-                                    link.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                    console.log('Encontrado Pagos en menú superior, clickeando...');
                                     link.click();
                                     return true;
                                 }
