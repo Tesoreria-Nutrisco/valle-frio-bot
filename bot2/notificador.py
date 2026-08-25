@@ -165,7 +165,7 @@ def enviar_notificacion_pago(
         html_content = html_content.replace("{{NUM_FACTURAS}}", str(len(facturas)))
         html_content = html_content.replace("{{FILAS_FACTURAS}}", filas_facturas)
         html_content = html_content.replace("{{FECHA_PAGO}}", str(fecha_pago))
-        html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", Path(comprobante_path).name)
+        html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", Path(comprobante_path).name if comprobante_path else "N/A")
         html_content = html_content.replace("{{CPB_NUM}}", "N/A")
 
         # Insertar logos en base64
