@@ -168,6 +168,12 @@ def enviar_notificacion_pago(
         html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", Path(comprobante_path).name)
         html_content = html_content.replace("{{CPB_NUM}}", "N/A")
 
+        # Insertar logos en base64
+        logo_vallefrio = obtener_logo_base64("vallefrio")
+        logo_nutrisco = obtener_logo_base64("nutrisco")
+        html_content = html_content.replace("{{LOGO_VALLEFRIO_BASE64}}", logo_vallefrio)
+        html_content = html_content.replace("{{LOGO_NUTRISCO_BASE64}}", logo_nutrisco)
+
         # Preparar destinatarios
         to_emails = []
         cc_emails = []
