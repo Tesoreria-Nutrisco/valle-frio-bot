@@ -51,7 +51,22 @@ def extraer_beneficiarios_nomina(excel_path: str) -> List[Tuple[str, float]]:
         Lista de tuplas (rut_normalizado, monto)
     """
     try:
-        df = pd.read_excel(excel_path, sheet_name=0)
+        # Detectar automáticamente la fila del header buscando "Rut Beneficiario"
+        df_raw = pd.read_excel(excel_path, sheet_name=0, header=None)
+        header_row = None
+
+        for idx, row in df_raw.iterrows():
+            row_str = ' '.join(str(val).lower() for val in row if pd.notna(val))
+            if 'rut' in row_str and ('beneficiario' in row_str or 'cédula' in row_str or 'cedula' in row_str):
+                header_row = idx
+                break
+
+        # Si encontramos header, usar esa fila; si no, asumir default (fila 0)
+        if header_row is not None:
+            df = pd.read_excel(excel_path, sheet_name=0, header=header_row)
+        else:
+            df = pd.read_excel(excel_path, sheet_name=0)
+
         beneficiarios = []
 
         # Buscar columnas de RUT y monto (nombres comunes)
@@ -67,6 +82,8 @@ def extraer_beneficiarios_nomina(excel_path: str) -> List[Tuple[str, float]]:
 
         if not rut_col or not monto_col:
             logger.warning(f"No se encontraron columnas RUT/Monto en {excel_path}")
+            logger.warning(f"[DEBUG] Columnas disponibles: {df.columns.tolist()}")
+            logger.warning(f"[DEBUG] Filas 15-25:\n{df.iloc[15:25].to_string()}")
             return []
 
         # Extraer beneficiarios
