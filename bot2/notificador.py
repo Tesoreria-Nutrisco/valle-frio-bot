@@ -51,7 +51,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 SEND_EMAIL_BOT2_FUNCTION_URL = f"{SUPABASE_URL}/functions/v1/send-email-bot2"
 
 
-def enviar_email_via_edge_function(to: str, subject: str, html: str, attachment_base64: str = None, attachment_filename: str = None) -> bool:
+def enviar_email_via_edge_function(to: str, subject: str, html: str, attachments: List[Dict] = None) -> bool:
     """
     Envía email usando Supabase Edge Function (send-email-bot2).
     Usa credenciales de Google OAuth 2.0 configuradas en Supabase secrets.
@@ -60,8 +60,7 @@ def enviar_email_via_edge_function(to: str, subject: str, html: str, attachment_
         to: Email destino
         subject: Asunto del correo
         html: Contenido HTML del correo
-        attachment_base64: Archivo en base64 (opcional)
-        attachment_filename: Nombre del archivo adjunto (opcional)
+        attachments: Lista de dicts con {filename, content (base64), cid (opcional)}
 
     Returns:
         True si se envió, False si falló
@@ -75,16 +74,9 @@ def enviar_email_via_edge_function(to: str, subject: str, html: str, attachment_
         payload = {
             "to": to,
             "subject": subject,
-            "html": html
+            "html": html,
+            "attachments": attachments or []
         }
-
-        # Agregar attachment si está disponible
-        if attachment_base64 and attachment_filename:
-            payload["attachment"] = {
-                "filename": attachment_filename,
-                "content": attachment_base64,
-                "encoding": "base64"
-            }
 
         response = requests.post(
             SEND_EMAIL_BOT2_FUNCTION_URL,
@@ -168,12 +160,6 @@ def enviar_notificacion_pago(
         html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", Path(comprobante_path).name if comprobante_path else "N/A")
         html_content = html_content.replace("{{CPB_NUM}}", "N/A")
 
-        # Insertar logos en base64
-        logo_vallefrio = obtener_logo_base64("vallefrio")
-        logo_nutrisco = obtener_logo_base64("nutrisco")
-        html_content = html_content.replace("{{LOGO_VALLEFRIO_BASE64}}", logo_vallefrio)
-        html_content = html_content.replace("{{LOGO_NUTRISCO_BASE64}}", logo_nutrisco)
-
         # Preparar destinatarios
         to_emails = []
         cc_emails = []
@@ -193,27 +179,47 @@ def enviar_notificacion_pago(
             cc_emails = [e for e in [zonal_email] if e]
             logger.info(f"Modo producción: enviando a {to_emails}" + (f" CC: {cc_emails}" if cc_emails else ""))
 
-        # Preparar attachment del comprobante
-        attachment_base64 = None
-        attachment_filename = None
+        # Preparar attachments: comprobante + logos con CID
+        attachments = []
 
+        # Agregar comprobante (descargable)
         if comprobante_path and Path(comprobante_path).exists():
             try:
                 with open(comprobante_path, "rb") as f:
                     import base64 as b64_module
-                    attachment_base64 = b64_module.b64encode(f.read()).decode("utf-8")
-                    attachment_filename = Path(comprobante_path).name
-                    logger.info(f"Comprobante adjuntado: {attachment_filename}")
+                    comprobante_base64 = b64_module.b64encode(f.read()).decode("utf-8")
+                    attachments.append({
+                        "filename": Path(comprobante_path).name,
+                        "content": comprobante_base64
+                    })
+                    logger.info(f"Comprobante adjuntado: {Path(comprobante_path).name}")
             except Exception as e:
                 logger.warning(f"No se pudo adjuntar comprobante {comprobante_path}: {e}")
+
+        # Agregar logos con CID (inline)
+        logo_vallefrio = obtener_logo_base64("vallefrio")
+        logo_nutrisco = obtener_logo_base64("nutrisco")
+
+        if logo_vallefrio:
+            attachments.append({
+                "filename": "logo_vallefrio.png",
+                "content": logo_vallefrio,
+                "cid": "logo_vallefrio"
+            })
+
+        if logo_nutrisco:
+            attachments.append({
+                "filename": "logo_nutrisco.png",
+                "content": logo_nutrisco,
+                "cid": "logo_nutrisco"
+            })
 
         # Enviar vía Edge Function
         email_enviado = enviar_email_via_edge_function(
             to=to_emails[0],
             subject=f"{asunto_prefix}Notificación de pago confirmado - Valle Frío (${monto_total:,.0f})",
             html=html_content,
-            attachment_base64=attachment_base64,
-            attachment_filename=attachment_filename
+            attachments=attachments
         )
 
         if email_enviado:
