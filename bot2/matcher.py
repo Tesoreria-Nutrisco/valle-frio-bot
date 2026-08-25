@@ -129,8 +129,9 @@ def _descargar_nomina_excel_desde_drive(
         credentials = Credentials.from_service_account_file(str(cred_path), scopes=scopes)
         drive = build("drive", "v3", credentials=credentials)
 
-        # Buscar archivo con el ID de nómina en el nombre
-        query = f"name contains '{id_nomina}' and name contains '.xlsx' and trashed=false"
+        # Buscar archivo con el ID de nómina en el nombre (en carpeta NOMINAS)
+        from config import DRIVE_FOLDER_ID_NOMINAS
+        query = f"'{DRIVE_FOLDER_ID_NOMINAS}' in parents and name contains '{id_nomina}' and name contains '.xlsx' and trashed=false"
         results = drive.files().list(
             q=query,
             spaces="drive",
