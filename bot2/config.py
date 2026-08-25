@@ -49,6 +49,7 @@ GOOGLE_DRIVE_CREDENTIALS_PATH = os.getenv("GOOGLE_DRIVE_CREDENTIALS_PATH")
 CREDENTIALS_PATH = GOOGLE_DRIVE_CREDENTIALS_PATH  # Alias para compatibilidad con bot1/drive_utils.py
 DRIVE_FOLDER_ID_CARTOLAS = os.getenv("DRIVE_FOLDER_ID_CARTOLAS")
 DRIVE_FOLDER_ID_COMPROBANTES = os.getenv("DRIVE_FOLDER_ID_COMPROBANTES")
+DRIVE_FOLDER_ID_NOMINAS = os.getenv("DRIVE_FOLDER_ID_NOMINAS")
 TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"  # Shared Drive de Valle Frío
 
 # ============================================================
