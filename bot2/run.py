@@ -45,32 +45,33 @@ from supabase_bot2 import (
 import tempfile
 from googleapiclient.http import MediaIoBaseDownload
 
-# Configurar logging
+# Configurar logging con UTF-8
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(LOG_PATH / "bot2_run.log"),
-        logging.StreamHandler()
-    ]
+        logging.FileHandler(LOG_PATH / "bot2_run.log", encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
+    ],
+    encoding='utf-8'
 )
 logger = logging.getLogger(__name__)
 
 
-def buscar_comprobante_en_drive(monto: float, fecha_pago: str, productor_cod: str) -> Tuple[str, str]:
+def buscar_comprobante_en_drive(monto: float, fecha_pago: str, rut_productor: str) -> Tuple[str, str]:
     """
-    Busca y descarga comprobante de Drive.
+    Busca comprobante en Drive por RUT del productor.
 
-    Estructura: /Comprobantes/{BANCO}/{YYYY}/{MM}/{DD}/comprobante_{banco}_{YYYYMMDD}_{RUT}.pdf
+    Estructura: /Comprobantes/{BANCO}/{YYYY}/{MM}/{DD}/comprobante_*_RUT.pdf
 
     Args:
         monto: monto del pago (no usado para búsqueda, solo para logging)
         fecha_pago: fecha en formato str (ej: "2026-08-10")
-        productor_cod: RUT sin formato, solo dígitos (ej: "77460678")
+        rut_productor: RUT normalizado del productor (8 dígitos, ej: "76334187")
 
     Returns:
         (ruta_local, ruta_drive) donde ambas son strings con la ruta del archivo
-        (None, None) si no encuentra el comprobante
+        (None, None) si no encuentra comprobante
     """
     try:
         drive = get_drive_service()
@@ -82,10 +83,6 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, productor_cod: st
             # Si es string, tomar solo la parte de fecha (antes del espacio)
             fecha_str = str(fecha_pago).split()[0]
             fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d")
-        yyyy = fecha_dt.strftime("%Y")
-        mm = fecha_dt.strftime("%m")
-        dd = fecha_dt.strftime("%d")
-        yyyymmdd = fecha_dt.strftime("%Y%m%d")
 
         # Obtener carpeta destino en Drive
         TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
@@ -101,29 +98,51 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, productor_cod: st
             logger.debug(f"No se pudo obtener carpeta de comprobantes: {e}")
             return None, None
 
-        # Buscar archivo: comprobante_BANCO_YYYYMMDD_RUT.pdf
-        archivo_esperado = f"comprobante_{BANCO_NOMBRE_CARPETA}_{yyyymmdd}_{productor_cod}.pdf"
+        logger.info(f"Buscando comprobante para RUT {rut_productor} en carpeta {folder_id}")
 
-        logger.debug(f"Buscando comprobante: {archivo_esperado} en carpeta {folder_id}")
-
-        # Buscar en Drive
+        # Buscar archivo que contenga el RUT en el nombre
+        # Formato esperado: comprobante_*.pdf con RUT al final
         query = (
             f"parents='{folder_id}' "
-            f"and name='{archivo_esperado}' "
+            f"and name contains 'comprobante_' "
+            f"and name contains '{rut_productor}' "
+            f"and mimeType='application/pdf' "
             f"and trashed=false"
         )
 
+        logger.info(f"Query Drive: {query}")
+
+        # Primero, listar TODOS los archivos en la carpeta (sin filtros) para diagnosticar
+        logger.info(f"[DIAGNÓSTICO] Listando todos los archivos en carpeta {folder_id}")
+        all_files_results = drive.files().list(
+            q=f"parents='{folder_id}' and trashed=false",
+            pageSize=100,
+            fields="files(id, name)",
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            corpora="allDrives"
+        ).execute()
+        all_files = all_files_results.get("files", [])
+        logger.info(f"[DIAGNÓSTICO] Total de archivos en carpeta: {len(all_files)}")
+        logger.info(f"[DIAGNÓSTICO] Nombres: {[f['name'] for f in all_files[:20]]}")
+
+        # Ahora aplicar la búsqueda con filtros
         results = drive.files().list(
             q=query,
-            spaces="drive",
             pageSize=1,
-            fields="files(id, name, webViewLink)"
+            fields="files(id, name, webViewLink)",
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+            corpora="allDrives"
         ).execute()
 
         files = results.get("files", [])
+        logger.info(f"Resultados de búsqueda: {len(files)} archivo(s) encontrado(s)")
+        if files:
+            logger.info(f"  Archivos: {[f['name'] for f in files]}")
 
         if not files:
-            logger.debug(f"No encontrado: {archivo_esperado}")
+            logger.info(f"No se encontró comprobante para RUT {rut_productor}")
             return None, None
 
         file_id = files[0]['id']
@@ -144,11 +163,10 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, productor_cod: st
         logger.debug(f"Descargado localmente: {tmp_path}")
 
         # Retornar (ruta_local, ruta_drive)
-        # ruta_drive es el webViewLink o el ID
         return tmp_path, web_link or f"https://drive.google.com/file/d/{file_id}"
 
     except Exception as e:
-        logger.warning(f"Error buscando/descargando comprobante: {e}")
+        logger.warning(f"Error buscando/descargando comprobante para RUT {rut_productor}: {e}")
         return None, None
 
 
@@ -230,10 +248,17 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple
             if not productor_nombre:
                 productor_nombre = productor_cod  # Fallback al código si no hay nombre
 
-            # PASO 4: Buscar comprobante (usar primer egreso del grupo para búsqueda)
+            # PASO 4: Buscar comprobante por RUT completo (con DV, 9 dígitos)
             primer_egreso = egresos_grupo[0]
-            _, ruta_drive = buscar_comprobante_en_drive(
-                monto_total, str(fecha_pago), productor_cod
+            # Obtener RUT completo del primer egreso (con DV)
+            rut_completo = primer_egreso.get('productor_rut', '')
+            if rut_completo:
+                # Limpiar puntos y guión para obtener solo dígitos (9 dígitos con DV)
+                rut_limpio = rut_completo.replace(".", "").replace("-", "").replace(" ", "")
+            else:
+                rut_limpio = productor_cod
+            ruta_local, ruta_drive = buscar_comprobante_en_drive(
+                monto_total, str(fecha_pago), rut_limpio
             )
             logger.info(f"  Comprobante: {ruta_drive or 'no encontrado'}")
 
@@ -259,8 +284,9 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple
                     zonal_email=None,
                     monto_total=monto_total,
                     facturas=facturas,
-                    comprobante_path=ruta_drive or "",
-                    productor_nombre=productor_nombre
+                    comprobante_path=ruta_local or "",
+                    productor_nombre=productor_nombre,
+                    cpb_num=cpb_num
                 )
 
                 # PASO 7A: Actualizar a 'notificado' SOLO si email se envió

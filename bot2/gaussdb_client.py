@@ -56,6 +56,7 @@ def obtener_egresos_softland(dias_atras: int = 30, fecha_hasta: datetime = None)
       b."CpbFec" AS fecha_carga,
       b."MovHaber" AS monto_egreso,
       TRIM(p."CodAux") AS productor_cod,
+      TRIM(COALESCE(a."RutAux", '')) AS productor_rut,
       p."MovDebe" AS monto_productor,
       p."MovGlosa" AS glosa
     FROM "SOFTLAND_VALLEFRIO"."cwmovim" b
@@ -65,6 +66,8 @@ def obtener_egresos_softland(dias_atras: int = 30, fecha_hasta: datetime = None)
     JOIN "SOFTLAND_VALLEFRIO"."cwcpbte" c
       ON b."CpbAno" = c."CpbAno"
       AND b."CpbNum" = c."CpbNum"
+    LEFT JOIN "SOFTLAND_VALLEFRIO"."cwtauxi" a
+      ON TRIM(p."CodAux") = TRIM(a."CodAux")
     WHERE c."Proceso" = 'emisión de nómina'
       AND TRIM(b."PctCod") IN ('10-01-10-16', '10-01-10-06')
       AND b."MovHaber" > 0

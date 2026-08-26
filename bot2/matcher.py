@@ -51,8 +51,14 @@ def extraer_beneficiarios_nomina(excel_path: str) -> List[Tuple[str, float]]:
         Lista de tuplas (rut_normalizado, monto)
     """
     try:
+        import os
+        file_size = os.path.getsize(excel_path)
+        logger.info(f"[DIAGNÓSTICO] Procesando {Path(excel_path).name} - Tamaño: {file_size} bytes")
+
         # Detectar automáticamente la fila del header buscando "Rut Beneficiario"
         df_raw = pd.read_excel(excel_path, sheet_name=0, header=None)
+        logger.info(f"[DIAGNÓSTICO] DataFrame crudo - {len(df_raw)} filas x {len(df_raw.columns)} columnas")
+        logger.info(f"[DIAGNÓSTICO] Primeras 30 filas del Excel:\n{df_raw.head(30).to_string()}")
         header_row = None
 
         for idx, row in df_raw.iterrows():
@@ -87,15 +93,21 @@ def extraer_beneficiarios_nomina(excel_path: str) -> List[Tuple[str, float]]:
             return []
 
         # Extraer beneficiarios
-        for _, row in df.iterrows():
+        logger.info(f"[DIAGNÓSTICO] Extrayendo beneficiarios - rut_col={rut_col}, monto_col={monto_col}")
+        logger.info(f"[DIAGNÓSTICO] Iterando {len(df)} filas del DataFrame...")
+
+        for idx, (_, row) in enumerate(df.iterrows()):
             rut = str(row[rut_col]).strip() if pd.notna(row[rut_col]) else None
             monto = float(row[monto_col]) if pd.notna(row[monto_col]) else 0
 
             if rut and monto > 0:
                 rut_norm = normalizar_rut(rut)
                 beneficiarios.append((rut_norm, monto))
+                logger.debug(f"    Fila {idx}: RUT={rut} → {rut_norm}, Monto={monto} ✓")
+            else:
+                logger.debug(f"    Fila {idx}: IGNORADA (rut={rut}, monto={monto})")
 
-        logger.debug(f"Beneficiarios extraídos de {Path(excel_path).name}: {len(beneficiarios)}")
+        logger.info(f"[DIAGNÓSTICO] Beneficiarios extraídos: {len(beneficiarios)} de {len(df)} filas")
         return beneficiarios
 
     except Exception as e:
@@ -148,6 +160,8 @@ def _descargar_nomina_excel_desde_drive(
 
         # Buscar archivo con el ID de nómina en el nombre (búsqueda global, incluyendo subcarpetas)
         query = f"name contains '{id_nomina}' and name contains '.xlsx' and trashed=false"
+        logger.info(f"    Buscando en Drive: {query}")
+
         results = drive.files().list(
             q=query,
             spaces="drive",
@@ -158,6 +172,12 @@ def _descargar_nomina_excel_desde_drive(
         ).execute()
 
         archivos = results.get("files", [])
+        logger.info(f"    Resultados: {len(archivos)} archivo(s) encontrado(s)")
+        if archivos:
+            logger.info(f"    Archivos encontrados: {[a['name'] for a in archivos]}")
+            if len(archivos) > 1:
+                logger.warning(f"    [ADVERTENCIA] MÚLTIPLES ARCHIVOS ENCONTRADOS para {id_nomina} - usaré el primero")
+
         if not archivos:
             logger.debug(f"No se encontró nómina Excel para ID {id_nomina} en Drive")
             return None
@@ -165,6 +185,7 @@ def _descargar_nomina_excel_desde_drive(
         # Tomar el primer archivo encontrado
         archivo_id = archivos[0]["id"]
         archivo_nombre = archivos[0]["name"]
+        logger.info(f"    Descargando: {archivo_nombre}")
 
         # Descargar a archivo temporal
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
@@ -326,6 +347,7 @@ def hacer_matching(
 
             if not nomina_excel_path:
                 logger.warning(f"  [SKIP] No se pudo descargar nómina {id_nomina}")
+                logger.warning(f"       Glosa que causó búsqueda: {cargo_glosa[:80]}...")
                 continue
 
             nominas_validas[id_nomina] = nomina_excel_path
@@ -337,8 +359,14 @@ def hacer_matching(
         logger.debug(f"  [4/6] Extrayendo beneficiarios de nómina {id_nomina}...")
         try:
             beneficiarios = extraer_beneficiarios_nomina(nomina_excel_path)
-            beneficiarios_dict = {rut: monto for rut, monto in beneficiarios}
-            logger.debug(f"  [4/6] Beneficiarios extraídos: {len(beneficiarios)}")
+            # Agrupar y sumar montos por RUT (pueden haber múltiples registros del mismo RUT)
+            beneficiarios_dict = {}
+            for rut, monto in beneficiarios:
+                if rut in beneficiarios_dict:
+                    beneficiarios_dict[rut] += monto
+                else:
+                    beneficiarios_dict[rut] = monto
+            logger.debug(f"  [4/6] Beneficiarios extraídos: {len(beneficiarios)} registros → {len(beneficiarios_dict)} RUTs únicos")
         except Exception as e:
             logger.warning(f"  [SKIP] Error extrayendo beneficiarios de nómina {id_nomina}: {e}")
             continue
@@ -348,12 +376,16 @@ def hacer_matching(
         logger.debug(f"  [5/6] Monto total de beneficiarios: ${monto_total_beneficiarios}")
 
         # PASO 6: Comparar con cargo de cartola
-        logger.debug(f"  [6/6] Comparando: cargo cartola ${cargo_monto} vs beneficiarios ${monto_total_beneficiarios}")
+        logger.info(f"  [6/6] Comparando montos:")
+        logger.info(f"       Cargo cartola: ${cargo_monto}")
+        logger.info(f"       Beneficiarios: ${monto_total_beneficiarios}")
 
         # Tolerancia 0.01 por redondeo
         if abs(float(cargo_monto) - monto_total_beneficiarios) > 0.01:
-            logger.debug(f"  [SKIP] Montos no coinciden (cargo=${cargo_monto}, beneficiarios=${monto_total_beneficiarios})")
+            logger.info(f"  [SKIP] Montos NO coinciden (diferencia: ${abs(float(cargo_monto) - monto_total_beneficiarios)})")
             continue
+        else:
+            logger.info(f"  [OK] Montos coinciden ✅")
 
         logger.debug(f"  [OK] Monto de cargo coincide exacto con suma de beneficiarios")
 
@@ -361,28 +393,39 @@ def hacer_matching(
         # Criterio: buscar egresos cuyo productor_cod esté en los beneficiarios de esta nómina
         # y el monto sea exacto
 
+        logger.info(f"  [7/7] Buscando egresos Softland que coincidan con beneficiarios de nómina {id_nomina}")
+        logger.info(f"        Beneficiarios en nómina: {list(beneficiarios_dict.keys())[:5]}... ({len(beneficiarios_dict)} total)")
+
         egresos_coincidencia = []
 
         for (cpb_ano, cpb_num, productor_cod), grupo_info in grupos_softland.items():
             monto_grupo = grupo_info['monto_total']
             egresos_grupo = grupo_info['egresos']
 
-            # Normalizar productor_cod para comparar contra beneficiarios normalizados
-            productor_rut_normalizado = normalizar_rut(productor_cod)
-            logger.debug(f"    Productor {productor_cod} → normalizado: {productor_rut_normalizado}")
+            # Usar productor_rut de Softland si está disponible, sino usar productor_cod como fallback
+            primer_egreso_grupo = egresos_grupo[0]
+            productor_rut_softland = primer_egreso_grupo.get('productor_rut', '').strip()
 
-            # ¿El productor_cod (normalizado) está en los beneficiarios?
+            # Normalizar RUT para comparar contra beneficiarios normalizados
+            if productor_rut_softland:
+                productor_rut_normalizado = normalizar_rut(productor_rut_softland)
+                logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+            else:
+                productor_rut_normalizado = normalizar_rut(productor_cod)
+                logger.info(f"    Softland (fallback) CodAux: {productor_cod} → {productor_rut_normalizado}")
+
+            # ¿El RUT (normalizado) está en los beneficiarios?
             if productor_rut_normalizado not in beneficiarios_dict:
-                logger.debug(f"    {productor_rut_normalizado} NO encontrado en beneficiarios de nómina {id_nomina}")
+                logger.info(f"      [SKIP] RUT {productor_rut_normalizado} NO en beneficiarios. Disponibles: {list(beneficiarios_dict.keys())}")
                 continue
 
             # ¿El monto del grupo coincide exacto con el beneficiario?
             monto_beneficiario = beneficiarios_dict[productor_rut_normalizado]
             if abs(monto_grupo - monto_beneficiario) > 0.01:
-                logger.debug(f"    Productor {productor_rut_normalizado}: monto ${monto_grupo} ≠ nómina ${monto_beneficiario}")
+                logger.info(f"      [SKIP] Monto mismatch: Softland ${monto_grupo} vs Nómina ${monto_beneficiario} (diff: ${abs(monto_grupo - monto_beneficiario)})")
                 continue
 
-            logger.info(f"  [OK] CONFIRMADO: {cpb_num} | Productor {productor_rut_normalizado} | Nómina {id_nomina}")
+            logger.info(f"  [OK] CONFIRMADO: {cpb_num} | Productor {productor_rut_normalizado} | Monto ${monto_grupo} | Nómina {id_nomina}")
 
             # Registrar como confirmados
             for egreso in egresos_grupo:

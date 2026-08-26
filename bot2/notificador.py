@@ -89,7 +89,7 @@ def enviar_email_via_edge_function(to: str, subject: str, html: str, attachments
         )
 
         if response.status_code in [200, 201, 202]:
-            logger.info(f"✓ Email enviado a {to} vía Edge Function send-email-bot2")
+            logger.info(f"[OK] Email enviado a {to} via Edge Function send-email-bot2")
             return True
         else:
             logger.warning(f"⚠️ Edge Function retornó {response.status_code}: {response.text}")
@@ -107,7 +107,8 @@ def enviar_notificacion_pago(
     monto_total: float,
     facturas: List[Dict],
     comprobante_path: str,
-    productor_nombre: str
+    productor_nombre: str,
+    cpb_num: str = "N/A"
 ) -> bool:
     """
     Envía correo de notificación de pago confirmado al productor (y zonal en CC si existe).
@@ -138,27 +139,43 @@ def enviar_notificacion_pago(
         # Preparar datos dinámicos
         fecha_pago = facturas[0]['fecha_pago'] if facturas else "N/A"
 
+        # Convertir fecha a formato DD-MM-YYYY si es posible
+        def formatear_fecha(fecha_obj):
+            try:
+                if isinstance(fecha_obj, datetime):
+                    return fecha_obj.strftime('%d-%m-%Y')
+                elif isinstance(fecha_obj, str):
+                    # Si es string con timestamp, extraer solo la fecha
+                    fecha_str = str(fecha_obj).split()[0]
+                    fecha_dt = datetime.strptime(fecha_str, "%Y-%m-%d")
+                    return fecha_dt.strftime('%d-%m-%Y')
+                else:
+                    return str(fecha_obj)
+            except:
+                return str(fecha_obj)
+
         # Generar filas de facturas con estructura HTML correcta
         filas_facturas = ""
         for factura in facturas:
             numero = factura.get('numero', 'N/A')
-            fecha = factura.get('fecha', str(fecha_pago))
+            fecha_raw = factura.get('fecha', fecha_pago)
+            fecha_formateada = formatear_fecha(fecha_raw)
             monto = factura.get('monto', monto_total)
             filas_facturas += f'        <tr>\n'
             filas_facturas += f'          <td style="padding:10px; color:#1B1868; border-bottom:1px solid #f1f5f9;">{numero}</td>\n'
-            filas_facturas += f'          <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9;">{fecha}</td>\n'
-            filas_facturas += f'          <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9; text-align:right;">${monto:,.0f}</td>\n'
+            filas_facturas += f'          <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9;">{fecha_formateada}</td>\n'
+            filas_facturas += f'          <td style="padding:10px; color:#2c2c2a; border-bottom:1px solid #f1f5f9; text-align:right;">${monto:,.0f}'.replace(",", ".") + f'</td>\n'
             filas_facturas += f'        </tr>\n'
 
         # Reemplazar placeholders
         html_content = html_template
         html_content = html_content.replace("{{PRODUCTOR_NOMBRE}}", productor_nombre)  # CRÍTICO: es PRODUCTOR_NOMBRE, no NOMBRE_PRODUCTOR
-        html_content = html_content.replace("{{MONTO_TOTAL}}", f"${monto_total:,.0f}")
+        html_content = html_content.replace("{{MONTO_TOTAL}}", f"${monto_total:,.0f}".replace(",", "."))
         html_content = html_content.replace("{{NUM_FACTURAS}}", str(len(facturas)))
         html_content = html_content.replace("{{FILAS_FACTURAS}}", filas_facturas)
-        html_content = html_content.replace("{{FECHA_PAGO}}", str(fecha_pago))
+        html_content = html_content.replace("{{FECHA_PAGO}}", formatear_fecha(fecha_pago))
         html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", Path(comprobante_path).name if comprobante_path else "N/A")
-        html_content = html_content.replace("{{CPB_NUM}}", "N/A")
+        html_content = html_content.replace("{{CPB_NUM}}", cpb_num)
 
         # Preparar destinatarios
         to_emails = []
@@ -179,7 +196,7 @@ def enviar_notificacion_pago(
             cc_emails = [e for e in [zonal_email] if e]
             logger.info(f"Modo producción: enviando a {to_emails}" + (f" CC: {cc_emails}" if cc_emails else ""))
 
-        # Preparar attachments: comprobante + logos con CID
+        # Preparar attachments: comprobante (descargable) + logos (inline con CID)
         attachments = []
 
         # Agregar comprobante (descargable)
@@ -196,7 +213,8 @@ def enviar_notificacion_pago(
             except Exception as e:
                 logger.warning(f"No se pudo adjuntar comprobante {comprobante_path}: {e}")
 
-        # Agregar logos con CID (inline)
+        # Agregar logos con CID (inline, NO descargables)
+        # El attachment con cid asegura que sean inline en el HTML
         logo_vallefrio = obtener_logo_base64("vallefrio")
         logo_nutrisco = obtener_logo_base64("nutrisco")
 
@@ -206,6 +224,7 @@ def enviar_notificacion_pago(
                 "content": logo_vallefrio,
                 "cid": "logo_vallefrio"
             })
+            logger.debug("Logo Valle Frío adjuntado con CID (inline)")
 
         if logo_nutrisco:
             attachments.append({
@@ -213,6 +232,7 @@ def enviar_notificacion_pago(
                 "content": logo_nutrisco,
                 "cid": "logo_nutrisco"
             })
+            logger.debug("Logo Nutrisco adjuntado con CID (inline)")
 
         # Enviar vía Edge Function
         email_enviado = enviar_email_via_edge_function(

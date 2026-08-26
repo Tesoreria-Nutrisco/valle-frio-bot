@@ -207,10 +207,29 @@ def extraer_ruts_nomina(pdf_path):
 
 def normalizar_rut(rut):
     """
-    Normaliza un RUT: XX.XXX.XXX-X → XXXXXXXX-X
+    Normaliza un RUT a formato XXXXXXXX (8 dígitos sin puntos ni verificador).
+    Maneja múltiples formatos:
+    - XX.XXX.XXX-X (Softland) → XXXXXXXX
+    - XXXXXXXXX (Nómina, 9 dígitos) → XXXXXXXX (primeros 8)
+    - XXXXXXXX-X → XXXXXXXX
     """
+    if not rut:
+        return ""
+
+    # Convertir a string y remover espacios
+    rut_str = str(rut).strip()
+
     # Remover puntos
-    rut_sin_puntos = rut.replace(".", "")
+    rut_sin_puntos = rut_str.replace(".", "")
+
+    # Remover guión y todo después (para formatos con verificador)
+    if "-" in rut_sin_puntos:
+        rut_sin_puntos = rut_sin_puntos.split("-")[0]
+
+    # Si tiene 9 dígitos (formato nómina sin verificador), tomar los primeros 8
+    if len(rut_sin_puntos) == 9 and rut_sin_puntos.isdigit():
+        rut_sin_puntos = rut_sin_puntos[:8]
+
     return rut_sin_puntos
 
 
