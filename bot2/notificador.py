@@ -73,6 +73,7 @@ def enviar_email_via_edge_function(to: str, subject: str, html: str, attachments
     try:
         payload = {
             "to": to,
+            "from": "Pagos Valle Frío <pagos@vallefrio.cl>",
             "subject": subject,
             "html": html,
             "attachments": attachments or []
@@ -108,7 +109,8 @@ def enviar_notificacion_pago(
     facturas: List[Dict],
     comprobante_path: str,
     productor_nombre: str,
-    cpb_num: str = "N/A"
+    cpb_num: str = "N/A",
+    nombre_archivo: str = "N/A"
 ) -> bool:
     """
     Envía correo de notificación de pago confirmado al productor (y zonal en CC si existe).
@@ -174,7 +176,7 @@ def enviar_notificacion_pago(
         html_content = html_content.replace("{{NUM_FACTURAS}}", str(len(facturas)))
         html_content = html_content.replace("{{FILAS_FACTURAS}}", filas_facturas)
         html_content = html_content.replace("{{FECHA_PAGO}}", formatear_fecha(fecha_pago))
-        html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", Path(comprobante_path).name if comprobante_path else "N/A")
+        html_content = html_content.replace("{{NOMBRE_ARCHIVO}}", nombre_archivo)
         html_content = html_content.replace("{{CPB_NUM}}", cpb_num)
 
         # Preparar destinatarios
@@ -206,10 +208,10 @@ def enviar_notificacion_pago(
                     import base64 as b64_module
                     comprobante_base64 = b64_module.b64encode(f.read()).decode("utf-8")
                     attachments.append({
-                        "filename": Path(comprobante_path).name,
+                        "filename": nombre_archivo,
                         "content": comprobante_base64
                     })
-                    logger.info(f"Comprobante adjuntado: {Path(comprobante_path).name}")
+                    logger.info(f"Comprobante adjuntado: {nombre_archivo}")
             except Exception as e:
                 logger.warning(f"No se pudo adjuntar comprobante {comprobante_path}: {e}")
 

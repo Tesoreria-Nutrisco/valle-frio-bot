@@ -58,7 +58,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def buscar_comprobante_en_drive(monto: float, fecha_pago: str, rut_productor: str) -> Tuple[str, str]:
+def buscar_comprobante_en_drive(monto: float, fecha_pago: str, rut_productor: str) -> Tuple[str, str, str]:
     """
     Busca comprobante en Drive por RUT del productor.
 
@@ -70,8 +70,11 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, rut_productor: st
         rut_productor: RUT normalizado del productor (8 dígitos, ej: "76334187")
 
     Returns:
-        (ruta_local, ruta_drive) donde ambas son strings con la ruta del archivo
-        (None, None) si no encuentra comprobante
+        (ruta_local, ruta_drive, nombre_archivo) donde:
+        - ruta_local: path temporal del archivo descargado
+        - ruta_drive: URL de Drive del archivo
+        - nombre_archivo: nombre original del archivo en Drive (ej: "comprobante_consorcio_20260810_763341879.pdf")
+        Returns (None, None, None) si no encuentra comprobante
     """
     try:
         drive = get_drive_service()
@@ -143,7 +146,7 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, rut_productor: st
 
         if not files:
             logger.info(f"No se encontró comprobante para RUT {rut_productor}")
-            return None, None
+            return None, None, None
 
         file_id = files[0]['id']
         file_name = files[0]['name']
@@ -162,12 +165,12 @@ def buscar_comprobante_en_drive(monto: float, fecha_pago: str, rut_productor: st
 
         logger.debug(f"Descargado localmente: {tmp_path}")
 
-        # Retornar (ruta_local, ruta_drive)
-        return tmp_path, web_link or f"https://drive.google.com/file/d/{file_id}"
+        # Retornar (ruta_local, ruta_drive, nombre_archivo_real)
+        return tmp_path, web_link or f"https://drive.google.com/file/d/{file_id}", file_name
 
     except Exception as e:
         logger.warning(f"Error buscando/descargando comprobante para RUT {rut_productor}: {e}")
-        return None, None
+        return None, None, None
 
 
 def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple[int, set]:
@@ -257,7 +260,7 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple
                 rut_limpio = rut_completo.replace(".", "").replace("-", "").replace(" ", "")
             else:
                 rut_limpio = productor_cod
-            ruta_local, ruta_drive = buscar_comprobante_en_drive(
+            ruta_local, ruta_drive, nombre_archivo = buscar_comprobante_en_drive(
                 monto_total, str(fecha_pago), rut_limpio
             )
             logger.info(f"  Comprobante: {ruta_drive or 'no encontrado'}")
@@ -285,6 +288,7 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple
                     monto_total=monto_total,
                     facturas=facturas,
                     comprobante_path=ruta_local or "",
+                    nombre_archivo=nombre_archivo or "N/A",
                     productor_nombre=productor_nombre,
                     cpb_num=cpb_num
                 )
