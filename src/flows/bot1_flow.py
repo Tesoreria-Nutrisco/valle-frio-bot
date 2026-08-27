@@ -7,6 +7,7 @@ Descarga de Cartolas y Nóminas del Banco Consorcio
 import sys
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 # Agregar bot1 al path
 bot1_path = str(Path(__file__).parent.parent.parent / "bot1")
@@ -36,7 +37,7 @@ def execute_bot1_task(fecha_testing: str = None):
 
 
 @flow(name="valle-frio-bot-flow", description="Bot 1 - Descarga de cartolas y nóminas")
-def bot1_flow(fecha_testing: str = None):
+def bot1_flow(fecha_testing: Optional[str] = None):
     """
     Flow principal de Bot 1 para Prefect
 
