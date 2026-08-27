@@ -14,7 +14,40 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 def get_drive_service():
     """Autentica con Google Drive usando service account."""
-    credentials = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=SCOPES)
+    # Buscar credentials.json en múltiples ubicaciones
+    creds_path = None
+
+    if CREDENTIALS_PATH:
+        creds_path = Path(CREDENTIALS_PATH)
+        if creds_path.exists():
+            logger.info(f"Usando credentials desde: {creds_path}")
+        else:
+            logger.warning(f"credentials.json no encontrado en: {creds_path}")
+            creds_path = None
+
+    # Buscar en ubicaciones alternativas
+    if not creds_path:
+        alternatives = [
+            Path("./credentials.json"),
+            Path("credentials.json"),
+            Path.home() / "credentials.json",
+            Path("C:/prefect-worker/credentials.json"),
+        ]
+
+        for alt_path in alternatives:
+            if alt_path.exists():
+                creds_path = alt_path
+                logger.info(f"Usando credentials desde ubicación alternativa: {creds_path}")
+                break
+
+    if not creds_path or not creds_path.exists():
+        raise FileNotFoundError(
+            f"No se encontró credentials.json. Buscadas en: {CREDENTIALS_PATH}, "
+            "./credentials.json, ~/, C:/prefect-worker/. "
+            "Copiar el archivo a una de estas ubicaciones o configurar GOOGLE_DRIVE_CREDENTIALS_PATH."
+        )
+
+    credentials = Credentials.from_service_account_file(str(creds_path), scopes=SCOPES)
     return build("drive", "v3", credentials=credentials)
 
 
