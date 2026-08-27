@@ -8,8 +8,9 @@ deployments:
     work_pool:
       name: lenovo-rpa-pool
     pull:
-      - prefect.deployments.steps.set_working_directory:
-          directory: C:\Users\jpmunoz\valle-frio-bot
+      - prefect.deployments.steps.git_clone:
+          repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
+          branch: master
     schedule:
       cron: "0 8,12,17 * * 1-5"
       timezone: America/Santiago
@@ -23,8 +24,9 @@ deployments:
     work_pool:
       name: lenovo-rpa-pool
     pull:
-      - prefect.deployments.steps.set_working_directory:
-          directory: C:\Users\jpmunoz\valle-frio-bot
+      - prefect.deployments.steps.git_clone:
+          repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
+          branch: master
     schedule:
       cron: "0 9,13,18 * * 1-5"
       timezone: America/Santiago
