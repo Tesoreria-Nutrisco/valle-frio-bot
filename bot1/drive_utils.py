@@ -1,4 +1,6 @@
 import logging
+import os
+import json
 from pathlib import Path
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
@@ -13,42 +15,49 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
 def get_drive_service():
-    """Autentica con Google Drive usando service account."""
-    # Buscar credentials.json en múltiples ubicaciones
+    """Autentica con Google Drive usando service account (archivo o variable de entorno)."""
+    # Opción 1: Leer desde archivo
     creds_path = None
-
     if CREDENTIALS_PATH:
         creds_path = Path(CREDENTIALS_PATH)
         if creds_path.exists():
-            logger.info(f"Usando credentials desde: {creds_path}")
+            logger.info(f"Usando credentials desde archivo: {creds_path}")
+            credentials = Credentials.from_service_account_file(str(creds_path), scopes=SCOPES)
+            return build("drive", "v3", credentials=credentials)
         else:
             logger.warning(f"credentials.json no encontrado en: {creds_path}")
-            creds_path = None
 
     # Buscar en ubicaciones alternativas
-    if not creds_path:
-        alternatives = [
-            Path("./credentials.json"),
-            Path("credentials.json"),
-            Path.home() / "credentials.json",
-            Path("C:/prefect-worker/credentials.json"),
-        ]
+    alternatives = [
+        Path("./credentials.json"),
+        Path("credentials.json"),
+        Path.home() / "credentials.json",
+        Path("C:/prefect-worker/credentials.json"),
+    ]
 
-        for alt_path in alternatives:
-            if alt_path.exists():
-                creds_path = alt_path
-                logger.info(f"Usando credentials desde ubicación alternativa: {creds_path}")
-                break
+    for alt_path in alternatives:
+        if alt_path.exists():
+            logger.info(f"Usando credentials desde: {alt_path}")
+            credentials = Credentials.from_service_account_file(str(alt_path), scopes=SCOPES)
+            return build("drive", "v3", credentials=credentials)
 
-    if not creds_path or not creds_path.exists():
-        raise FileNotFoundError(
-            f"No se encontró credentials.json. Buscadas en: {CREDENTIALS_PATH}, "
-            "./credentials.json, ~/, C:/prefect-worker/. "
-            "Copiar el archivo a una de estas ubicaciones o configurar GOOGLE_DRIVE_CREDENTIALS_PATH."
-        )
+    # Opción 2: Leer desde variable de entorno JSON
+    creds_json_str = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if creds_json_str:
+        try:
+            logger.info("Usando credentials desde variable de entorno GOOGLE_CREDENTIALS_JSON")
+            creds_dict = json.loads(creds_json_str)
+            credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+            return build("drive", "v3", credentials=credentials)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error al parsear GOOGLE_CREDENTIALS_JSON: {e}")
 
-    credentials = Credentials.from_service_account_file(str(creds_path), scopes=SCOPES)
-    return build("drive", "v3", credentials=credentials)
+    raise FileNotFoundError(
+        "No se encontraron credenciales de Google Drive. "
+        "Configura una de: (1) credentials.json en el directorio del proyecto, "
+        "(2) GOOGLE_DRIVE_CREDENTIALS_PATH pointing a un archivo, "
+        "(3) GOOGLE_CREDENTIALS_JSON con el contenido JSON en base64 o texto."
+    )
 
 
 def list_folder_contents(service, folder_id, name_filter=None, team_drive_id=None):
