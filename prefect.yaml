@@ -4,7 +4,7 @@
 deployments:
   - name: valle-frio-bot
     description: "Bot de descarga de cartolas y comprobantes - Banco Consorcio"
-    entrypoint: src/flows/valle_frio_bot_flow.py:valle_frio_bot_flow
+    entrypoint: src/flows/bot2_flow.py:bot2_flow
     work_pool:
       name: lenovo-rpa-pool
     schedule:
