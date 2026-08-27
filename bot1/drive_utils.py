@@ -63,8 +63,10 @@ def get_drive_service():
             creds_dict = json.loads(creds_json_str)
             credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
             return build("drive", "v3", credentials=credentials)
+        else:
+            logger.error("Prefect Secret Block 'google-credentials' está vacío o None")
     except Exception as e:
-        logger.debug(f"No se pudo cargar Prefect Secret Block: {e}")
+        logger.error(f"Error cargando Prefect Secret Block: {type(e).__name__}: {e}")
 
     raise FileNotFoundError(
         "No se encontraron credenciales de Google Drive. "
