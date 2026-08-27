@@ -7,6 +7,7 @@ Reconciliación de Egresos Softland vs Cartola Bancaria
 import sys
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 # Agregar bot2 al path
 bot2_path = str(Path(__file__).parent.parent.parent / "bot2")
@@ -35,7 +36,7 @@ def execute_bot2_task(fecha_prueba: str = None):
 
 
 @flow(name="bot2-reconciliation", description="Bot 2 - Reconciliación Softland vs Cartola")
-def bot2_flow(fecha_testing: str = None):
+def bot2_flow(fecha_testing: Optional[str] = None):
     """
     Flow principal de Bot 2 para Prefect
 

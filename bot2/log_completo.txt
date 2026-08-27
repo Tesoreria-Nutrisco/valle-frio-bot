@@ -1,0 +1,489 @@
+﻿python : 
+C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\site-packages\pypdf\_crypt_providers\_cryptography.py:32: 
+CryptographyDeprecationWarning: ARC4 has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.ARC4 and will 
+be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+En línea: 1 Carácter: 343
++ ... rs\jpmunoz\valle-frio-bot\bot2; python run.py 2026-08-10 2>&1 | Tee-O ...
++                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\jpmuno...thms in 48.0.0.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from cryptography.hazmat.primitives.ciphers.algorithms import AES, ARC4
+2026-08-25 16:20:12,260 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:12,260 - __main__ - INFO - INICIANDO BOT 2 - RECONCILIACIÓN EGRESOS
+2026-08-25 16:20:12,260 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:12,260 - __main__ - INFO - Fecha: 2026-08-10
+2026-08-25 16:20:12,260 - __main__ - INFO - Modo: TEST
+2026-08-25 16:20:12,261 - __main__ - INFO -   Correos enviados a: javiera.munozc@nutrisco.com
+2026-08-25 16:20:12,261 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:12,261 - __main__ - INFO - PASO 1: Consultando Softland (últimos 30 días)...
+2026-08-25 16:20:12,261 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:12,261 - gaussdb_client - INFO - Consultando Softland: egresos Consorcio+BCI, nóminas, productor 
+(2026-07-11 a 2026-08-10)
+C:\Users\jpmunoz\valle-frio-bot\bot2\gaussdb_client.py:83: UserWarning: pandas only supports SQLAlchemy connectable 
+(engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please 
+consider using SQLAlchemy.
+  df = pd.read_sql(query, conn)
+2026-08-25 16:20:13,204 - gaussdb_client - INFO - [OK] Extracción OK: 45 movimientos encontrados
+2026-08-25 16:20:13,206 - __main__ - INFO - [OK] Egresos obtenidos: 45
+2026-08-25 16:20:13,206 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:13,207 - __main__ - INFO - PASO 2: Descargando cartolas (últimos 30 días)...
+2026-08-25 16:20:13,207 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:13,207 - cartola_cleaner - INFO - Descargando TODAS las cartolas de CONSORCIO en Drive (2026-07-11 a 
+2026-08-10)
+2026-08-25 16:20:13,251 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-08-25 16:20:16,628 - cartola_cleaner - INFO - Carpetas de día encontradas: 4
+2026-08-25 16:20:17,527 - cartola_cleaner - INFO -   Descargando día 03: cartola_consorcio_20260803.xlsx
+2026-08-25 16:20:18,202 - cartola_cleaner - INFO - Limpiando cartola de CONSORCIO
+2026-08-25 16:20:18,229 - cartola_cleaner - INFO - Cartola bruta: 42 filas
+2026-08-25 16:20:18,232 - cartola_cleaner - INFO - Cartola filtrada (CARGO NÓMINA): 6 filas
+C:\Users\jpmunoz\valle-frio-bot\bot2\cartola_cleaner.py:323: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: 
+https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+C:\Users\jpmunoz\valle-frio-bot\bot2\cartola_cleaner.py:323: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: 
+https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+C:\Users\jpmunoz\valle-frio-bot\bot2\cartola_cleaner.py:323: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: 
+https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+C:\Users\jpmunoz\valle-frio-bot\bot2\cartola_cleaner.py:323: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: 
+https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+C:\Users\jpmunoz\valle-frio-bot\bot2\cartola_cleaner.py:323: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: 
+https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+C:\Users\jpmunoz\valle-frio-bot\bot2\cartola_cleaner.py:323: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: 
+https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+C:\Users\jpmunoz\valle-frio-bot\bot2\cartola_cleaner.py:323: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: 
+https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  df_filtrado[col] = df_filtrado[col].astype(str).str.strip()
+2026-08-25 16:20:18,235 - cartola_cleaner - INFO -     [OK] 6 cargos NÓMINA encontrados
+2026-08-25 16:20:18,237 - cartola_cleaner - INFO - Cartola combinada: 6 cargos NÓMINA totales
+2026-08-25 16:20:18,237 - __main__ - INFO - [OK] Cartola descargada: 6 cargos NÓMINA
+2026-08-25 16:20:18,237 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:18,237 - __main__ - INFO - PASO 3: Matching (monto + fecha exacto, 3 reintentos)...
+2026-08-25 16:20:18,237 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:18,237 - matcher - INFO - [OPCIÓN D] Iniciando matching: 45 egresos vs 6 cargos
+2026-08-25 16:20:18,237 - matcher - INFO - Banco: CONSORCIO | Cuentas a buscar: ['10-01-10-16', '10-01-10-06']
+2026-08-25 16:20:18,237 - matcher - INFO - Egresos agrupados en 10 grupos por productor
+2026-08-25 16:20:18,953 - supabase_client - INFO - Cliente Supabase inicializado con schema: valle_frio_bot
+2026-08-25 16:20:22,629 - httpx - INFO - HTTP Request: GET https://zczzcvlpvnwevoxfosdp.supabase.co/rest/v1/bot1_nomina
+s_descargadas?select=id_nomina%2Cfecha_pago%2Cestado%2Cbot2_estado "HTTP/2 200 OK"
+2026-08-25 16:20:22,631 - supabase_bot2 - INFO - [OK] Obtenidas 8 nóminas descargadas
+2026-08-25 16:20:22,631 - matcher - INFO - Nóminas a procesar (bot2_estado='pendiente'): 5 de 8
+2026-08-25 16:20:22,631 - matcher - INFO - Iterando 6 líneas de cartola...
+2026-08-25 16:20:22,705 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-08-25 16:20:22,709 - matcher - INFO -     Buscando en Drive: name contains '1972121' and name contains '.xlsx' 
+and trashed=false
+2026-08-25 16:20:24,054 - matcher - INFO -     Resultados: 0 archivo(s) encontrado(s)
+2026-08-25 16:20:24,055 - matcher - WARNING -   [SKIP] No se pudo descargar nómina 1972121
+2026-08-25 16:20:24,055 - matcher - WARNING -        Glosa que causó búsqueda: CARGO NÓMINA  PROVEEDORES ID 1972121...
+2026-08-25 16:20:24,095 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-08-25 16:20:24,097 - matcher - INFO -     Buscando en Drive: name contains '1971944' and name contains '.xlsx' 
+and trashed=false
+2026-08-25 16:20:25,319 - matcher - INFO -     Resultados: 0 archivo(s) encontrado(s)
+2026-08-25 16:20:25,320 - matcher - WARNING -   [SKIP] No se pudo descargar nómina 1971944
+2026-08-25 16:20:25,320 - matcher - WARNING -        Glosa que causó búsqueda: CARGO NÓMINA  PROVEEDORES ID 1971944...
+2026-08-25 16:20:25,398 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-08-25 16:20:25,401 - matcher - INFO -     Buscando en Drive: name contains '1965892' and name contains '.xlsx' 
+and trashed=false
+2026-08-25 16:20:26,741 - matcher - INFO -     Resultados: 1 archivo(s) encontrado(s)
+2026-08-25 16:20:26,742 - matcher - INFO -     Archivos encontrados: ['nomina_20260810_1965892.xlsx']
+2026-08-25 16:20:26,742 - matcher - INFO -     Descargando: nomina_20260810_1965892.xlsx
+2026-08-25 16:20:27,463 - matcher - INFO - [DIAGNÓSTICO] Procesando tmp93ya0c5u.xlsx - Tamaño: 53760 bytes
+2026-08-25 16:20:27,477 - matcher - INFO - [DIAGNÓSTICO] DataFrame crudo - 63 filas x 9 columnas
+2026-08-25 16:20:27,482 - matcher - INFO - [DIAGNÓSTICO] Primeras 30 filas del Excel:
+     0                         1                                                   2                          3        
+              4                       5               6                 7                 8
+0  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+1  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+2  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+3  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+4  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+5  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+6  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+7  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+8  NaN               Informe SAM                                                 NaN  Servicio de Abono Masivos        
+            NaN                     NaN             NaN               NaN               NaN
+9  NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+10 NaN                  Cabecera                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+11 NaN               Rut Empresa                                           775981261                        NaN        
+  Fecha Emisión         07/8/2026 10:27             NaN               NaN               NaN
+12 NaN           Numero Convenio                                                 517                        NaN        
+     Fecha Pago               10/8/2026             NaN               NaN               NaN
+13 NaN           Cta Cte Empresa                                          4210026191                        NaN    
+Código de Operación              1350040000             NaN               NaN               NaN
+14 NaN              Servico Pago                                                   1                        NaN  
+Código Bco Originador                     055             NaN               NaN               NaN
+15 NaN           Total Registros                                                  43                        NaN        
+Id Nomina Banco                   59117             NaN               NaN               NaN
+16 NaN               Monto Total                                            73384191                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+17 NaN                       NaN                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+18 NaN  Detalle de Transacciones                                                 NaN                        NaN        
+            NaN                     NaN             NaN               NaN               NaN
+19 NaN          Rut Beneficiario                                    Nom Benificiario       Código Banco Destino        
+     Medio Pago         Num Cta Destino  Monto del Pago  Correo Proveedor  Id Detalle Banco
+20 NaN                155832908   MANUEL JOSE VALDES                                                         28        
+             00  00000000000012809204            815171               NaN        0006549241
+21 NaN                155832908   MANUEL JOSE VALDES                                                         28        
+             00  00000000000012809204            631587               NaN        0006549242
+22 NaN                762125706   QUALITY LAB LABORATORIO CONSULTORIA Y CAPACIT                              37        
+             00  00000000000004460740           1204280               NaN        0006549243
+23 NaN                762575744   SOC. COM. ARCAM LTDA                                                       12        
+             00  00000000042500133435            111836               NaN        0006549244
+24 NaN                76330471K   FREE PACKAGING AUTOMATIZACIONES LIMITADA                                   16        
+             00  00000000000070589810           1220053               NaN        0006549245
+25 NaN                764404904   SOC COMERCIAL DE PRODUCTOS INDUSTR.Y SERVICIO                              16        
+             00  00000000000081963645           1557089               NaN        0006549246
+26 NaN                76576582K   PROTEGE LTDA                                                               37        
+             00  00000000000070763885           2224289               NaN        0006549247
+27 NaN                76576582K   PROTEGE LTDA                                                               37        
+             00  00000000000070763885           5262251               NaN        0006549248
+28 NaN                766518613   SOLUCIONES Y SERVICIOS SPA                                                 37        
+             00  00000000000072387627           3678290               NaN        0006549249
+29 NaN                76665181K   COMERCIAL LUDUECA SPA                                                      37        
+             00  00000000000071082857            127098               NaN        0006549250
+2026-08-25 16:20:27,485 - matcher - INFO - [DIAGNÓSTICO] Extrayendo beneficiarios - rut_col=Rut Beneficiario, 
+monto_col=Monto del Pago
+2026-08-25 16:20:27,486 - matcher - INFO - [DIAGNÓSTICO] Iterando 43 filas del DataFrame...
+2026-08-25 16:20:27,486 - matcher - INFO - [DIAGNÓSTICO] Beneficiarios extraídos: 43 de 43 filas
+2026-08-25 16:20:27,486 - matcher - INFO -   [6/6] Comparando montos:
+2026-08-25 16:20:27,487 - matcher - INFO -        Cargo cartola: $73384191
+2026-08-25 16:20:27,487 - matcher - INFO -        Beneficiarios: $73384191.0
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 67: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 388, in hacer_matching
+    logger.info(f"  [OK] Montos coinciden ✅")
+Message: '  [OK] Montos coinciden ✅'
+Arguments: ()
+2026-08-25 16:20:27,487 - matcher - INFO -   [OK] Montos coinciden ✅
+2026-08-25 16:20:27,489 - matcher - INFO -   [7/7] Buscando egresos Softland que coincidan con beneficiarios de nómina 
+1965892
+2026-08-25 16:20:27,489 - matcher - INFO -         Beneficiarios en nómina: ['15583290', '76212570', '76257574', 
+'76330471K', '76440490']... (23 total)
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 76.334.187-9 → 76334187'
+Arguments: ()
+2026-08-25 16:20:27,490 - matcher - INFO -     Softland RUT: 76.334.187-9 → 76334187
+2026-08-25 16:20:27,491 - matcher - INFO -       [SKIP] RUT 76334187 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 76.796.662-8 → 76796662'
+Arguments: ()
+2026-08-25 16:20:27,491 - matcher - INFO -     Softland RUT: 76.796.662-8 → 76796662
+2026-08-25 16:20:27,492 - matcher - INFO -       [SKIP] RUT 76796662 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 76.763.393-9 → 76763393'
+Arguments: ()
+2026-08-25 16:20:27,492 - matcher - INFO -     Softland RUT: 76.763.393-9 → 76763393
+2026-08-25 16:20:27,492 - matcher - INFO -       [SKIP] RUT 76763393 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 77.713.645-3 → 77713645'
+Arguments: ()
+2026-08-25 16:20:27,492 - matcher - INFO -     Softland RUT: 77.713.645-3 → 77713645
+2026-08-25 16:20:27,493 - matcher - INFO -       [SKIP] RUT 77713645 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 77.713.645-3 → 77713645'
+Arguments: ()
+2026-08-25 16:20:27,493 - matcher - INFO -     Softland RUT: 77.713.645-3 → 77713645
+2026-08-25 16:20:27,493 - matcher - INFO -       [SKIP] RUT 77713645 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 77.180.654-6 → 77180654'
+Arguments: ()
+2026-08-25 16:20:27,493 - matcher - INFO -     Softland RUT: 77.180.654-6 → 77180654
+2026-08-25 16:20:27,493 - matcher - INFO -       [SKIP] RUT 77180654 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 76.763.393-9 → 76763393'
+Arguments: ()
+2026-08-25 16:20:27,493 - matcher - INFO -     Softland RUT: 76.763.393-9 → 76763393
+2026-08-25 16:20:27,494 - matcher - INFO -       [SKIP] RUT 76763393 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 77.085.510-1 → 77085510'
+Arguments: ()
+2026-08-25 16:20:27,494 - matcher - INFO -     Softland RUT: 77.085.510-1 → 77085510
+2026-08-25 16:20:27,494 - matcher - INFO -       [SKIP] RUT 77085510 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 77.713.645-3 → 77713645'
+Arguments: ()
+2026-08-25 16:20:27,494 - matcher - INFO -     Softland RUT: 77.713.645-3 → 77713645
+2026-08-25 16:20:27,494 - matcher - INFO -       [SKIP] RUT 77713645 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\logging\__init__.py", line 1163, in emit
+    stream.write(msg + self.terminator)
+  File "C:\Users\jpmunoz\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 74: character maps to <undefined>
+Call stack:
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 508, in <module>
+    main(fecha_testing)
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\run.py", line 414, in main
+    resultado_matching = hacer_matching(
+  File "C:\Users\jpmunoz\valle-frio-bot\bot2\matcher.py", line 412, in hacer_matching
+    logger.info(f"    Softland RUT: {productor_rut_softland} → {productor_rut_normalizado}")
+Message: '    Softland RUT: 76.448.057-0 → 76448057'
+Arguments: ()
+2026-08-25 16:20:27,494 - matcher - INFO -     Softland RUT: 76.448.057-0 → 76448057
+2026-08-25 16:20:27,495 - matcher - INFO -       [SKIP] RUT 76448057 NO en beneficiarios. Disponibles: ['15583290', 
+'76212570', '76257574', '76330471K', '76440490', '76576582K', '76651861', '76665181K', '76786474', '76794540K', 
+'77026092', '77095234', '77216455', '77349915', '77357180', '77643296', '77662790', '78034470', '79657820', 
+'85172100', '91806000', '96851800', '99101563']
+2026-08-25 16:20:27,537 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-08-25 16:20:27,539 - matcher - INFO -     Buscando en Drive: name contains '1943215' and name contains '.xlsx' 
+and trashed=false
+2026-08-25 16:20:28,704 - matcher - INFO -     Resultados: 0 archivo(s) encontrado(s)
+2026-08-25 16:20:28,704 - matcher - WARNING -   [SKIP] No se pudo descargar nómina 1943215
+2026-08-25 16:20:28,704 - matcher - WARNING -        Glosa que causó búsqueda: CARGO NÓMINA  PROVEEDORES ID 1943215...
+2026-08-25 16:20:28,762 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2026-08-25 16:20:28,767 - matcher - INFO -     Buscando en Drive: name contains '1942190' and name contains '.xlsx' 
+and trashed=false
+2026-08-25 16:20:41,861 - matcher - INFO -     Resultados: 0 archivo(s) encontrado(s)
+2026-08-25 16:20:41,861 - matcher - WARNING -   [SKIP] No se pudo descargar nómina 1942190
+2026-08-25 16:20:41,861 - matcher - WARNING -        Glosa que causó búsqueda: CARGO NÓMINA  PROVEEDORES ID 1942190...
+2026-08-25 16:20:41,861 - matcher - INFO - Procesando 10 grupos de egresos sin coincidencia en cartola...
+2026-08-25 16:20:41,863 - matcher - INFO - [PAUSE] 00023091: monto $72037586.0 no existe aún en cartola
+2026-08-25 16:20:41,864 - matcher - INFO - [PAUSE] 00023091: monto $5471620.0 no existe aún en cartola
+2026-08-25 16:20:41,864 - matcher - INFO - [PAUSE] 00023091: monto $11199115.0 no existe aún en cartola
+2026-08-25 16:20:41,865 - matcher - INFO - [PAUSE] 00023091: monto $192001803.0 no existe aún en cartola
+2026-08-25 16:20:41,866 - matcher - INFO - [PAUSE] 00022274: monto $88918503.0 no existe aún en cartola
+2026-08-25 16:20:41,866 - matcher - INFO - [PAUSE] 00021987: monto $56680819.0 no existe aún en cartola
+2026-08-25 16:20:41,867 - matcher - INFO - [PAUSE] 00021988: monto $4000000.0 no existe aún en cartola
+2026-08-25 16:20:41,867 - matcher - INFO - [PAUSE] 00021748: monto $35386921.0 no existe aún en cartola
+2026-08-25 16:20:41,867 - matcher - INFO - [PAUSE] 00021801: monto $152630542.0 no existe aún en cartola
+2026-08-25 16:20:41,867 - matcher - INFO - [PAUSE] 00021744: monto $102598440.0 no existe aún en cartola
+2026-08-25 16:20:41,867 - matcher - INFO - Resultado matching [Opción D]:
+2026-08-25 16:20:41,867 - matcher - INFO -   [OK] Confirmados: 0
+2026-08-25 16:20:41,868 - matcher - INFO -   [PAUSE] Sin match: 45
+2026-08-25 16:20:41,868 - matcher - INFO -   [FAIL] No cuadra: 0
+2026-08-25 16:20:41,868 - __main__ - INFO - Resultado matching:
+2026-08-25 16:20:41,868 - __main__ - INFO -   [OK] Confirmados: 0
+2026-08-25 16:20:41,868 - __main__ - INFO -   [PAUSE] Sin match: 45
+2026-08-25 16:20:41,868 - __main__ - INFO -   [FAIL] No cuadra: 0
+2026-08-25 16:20:41,868 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:41,868 - __main__ - INFO - RESUMEN BOT 2
+2026-08-25 16:20:41,868 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:41,868 - __main__ - INFO - Egresos consultados:  45
+2026-08-25 16:20:41,868 - __main__ - INFO - Confirmados:          0 procesados
+2026-08-25 16:20:41,868 - __main__ - INFO - Sin match:            45 (próxima corrida)
+2026-08-25 16:20:41,868 - __main__ - INFO - No cuadra:            0 alertas enviadas
+2026-08-25 16:20:41,868 - __main__ - INFO - Pagos notificados:    0
+2026-08-25 16:20:41,868 - __main__ - INFO - 
+================================================================================
+2026-08-25 16:20:41,868 - __main__ - INFO - BOT 2 COMPLETADO EXITOSAMENTE
+2026-08-25 16:20:41,868 - __main__ - INFO - 
+================================================================================

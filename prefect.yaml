@@ -7,6 +7,9 @@ deployments:
     entrypoint: src/flows/bot1_flow.py:bot1_flow
     work_pool:
       name: lenovo-rpa-pool
+    pull:
+      - prefect.deployments.steps.set_working_directory:
+          directory: C:\Users\bolea\Documents\GitHub\valle-frio-bot
     schedule:
       cron: "0 8,12,17 * * 1-5"
       timezone: America/Santiago
@@ -17,6 +20,11 @@ deployments:
   - name: valle-frio-bot-2
     description: "Bot 2 - Reconciliación Softland vs Cartola"
     entrypoint: src/flows/bot2_flow.py:bot2_flow
+    work_pool:
+      name: lenovo-rpa-pool
+    pull:
+      - prefect.deployments.steps.set_working_directory:
+          directory: C:\Users\bolea\Documents\GitHub\valle-frio-bot
     work_pool:
       name: lenovo-rpa-pool
     schedule:
