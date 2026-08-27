@@ -7,6 +7,10 @@ deployments:
     entrypoint: src/flows/bot1_flow.py:bot1_flow
     work_pool:
       name: lenovo-rpa-pool
+    pull:
+      - prefect.deployments.steps.git_clone:
+          repository: https://github.com/nutriscode/valle-frio-bot.git
+          branch: master
     schedule:
       cron: "0 8,12,17 * * 1-5"
       timezone: America/Santiago
@@ -19,6 +23,10 @@ deployments:
     entrypoint: src/flows/bot2_flow.py:bot2_flow
     work_pool:
       name: lenovo-rpa-pool
+    pull:
+      - prefect.deployments.steps.git_clone:
+          repository: https://github.com/nutriscode/valle-frio-bot.git
+          branch: master
     schedule:
       cron: "0 9,13,18 * * 1-5"
       timezone: America/Santiago
