@@ -11,6 +11,24 @@ deployments:
       - prefect.deployments.steps.git_clone:
           repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
           branch: master
+    env:
+      BANCO_USUARIO: "20.998.399-0"
+      BANCO_CLAVE: "Cons_2603"
+      GOOGLE_DRIVE_CREDENTIALS_PATH: "./credentials.json"
+      DRIVE_FOLDER_ID_CARTOLAS: "1wIMazNNEGuCV29kJwHfIgM_HiTFGcF_Z"
+      DRIVE_FOLDER_ID_COMPROBANTES: "1kXrCcPI9xflRB0l59tvdd9xy5v2cEVfq"
+      DRIVE_FOLDER_ID_NOMINAS: "1ah481Q2iQ2EzlZOgbhyszg18BjprlT4N"
+      BANCO_NOMBRE_CARPETA: "consorcio"
+      DOWNLOAD_TEMP_PATH: "./temp_downloads"
+      MODO_DRY_RUN: "false"
+      LOG_PATH: "./logs"
+      SUPABASE_URL: "https://zczzcvlpvnwevoxfosdp.supabase.co"
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpjenpjdmxwdm53ZXZveGZvc2RwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTQ3NDAwOCwiZXhwIjoyMDgxMDUwMDA4fQ.-SKRKc3bREusIwJrV33KIBNO7SXBSWx3ua-tuYxAzmQ"
+      GAUSSDB_HOST: "10.252.0.149"
+      GAUSSDB_PORT: "8000"
+      GAUSSDB_DB: "gaussdb"
+      GAUSSDB_USER: "CtasCorp"
+      GAUSSDB_PASSWORD: "Ctas.Corp#2025#"
     schedule:
       cron: "0 8,12,17 * * 1-5"
       timezone: America/Santiago
@@ -27,6 +45,26 @@ deployments:
       - prefect.deployments.steps.git_clone:
           repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
           branch: master
+    env:
+      BANCO_USUARIO: "20.998.399-0"
+      BANCO_CLAVE: "Cons_2603"
+      GOOGLE_DRIVE_CREDENTIALS_PATH: "./credentials.json"
+      DRIVE_FOLDER_ID_CARTOLAS: "1wIMazNNEGuCV29kJwHfIgM_HiTFGcF_Z"
+      DRIVE_FOLDER_ID_COMPROBANTES: "1kXrCcPI9xflRB0l59tvdd9xy5v2cEVfq"
+      DRIVE_FOLDER_ID_NOMINAS: "1ah481Q2iQ2EzlZOgbhyszg18BjprlT4N"
+      BANCO_NOMBRE_CARPETA: "consorcio"
+      DOWNLOAD_TEMP_PATH: "./temp_downloads"
+      MODO_DRY_RUN: "false"
+      LOG_PATH: "./logs"
+      SUPABASE_URL: "https://zczzcvlpvnwevoxfosdp.supabase.co"
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpjenpjdmxwdm53ZXZveGZvc2RwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTQ3NDAwOCwiZXhwIjoyMDgxMDUwMDA4fQ.-SKRKc3bREusIwJrV33KIBNO7SXBSWx3ua-tuYxAzmQ"
+      GAUSSDB_HOST: "10.252.0.149"
+      GAUSSDB_PORT: "8000"
+      GAUSSDB_DB: "gaussdb"
+      GAUSSDB_USER: "CtasCorp"
+      GAUSSDB_PASSWORD: "Ctas.Corp#2025#"
+      MODO_TEST: "false"
+      CORREO_PRUEBA: "javiera.munozc@nutrisco.com"
     schedule:
       cron: "0 9,13,18 * * 1-5"
       timezone: America/Santiago
