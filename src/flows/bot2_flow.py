@@ -38,7 +38,7 @@ def execute_bot2_task(fecha_prueba: str = None):
 @flow(name="bot2-reconciliation", description="Bot 2 - Reconciliación Softland vs Cartola")
 def bot2_flow(fecha_testing: Optional[str] = None):
     """
-    Flow principal de Bot 2 para Prefect
+    Flow principal de Bot 2 para Prefect.
 
     Parameters:
         fecha_testing: Fecha para testing (default: hoy). Formato: YYYY-MM-DD
