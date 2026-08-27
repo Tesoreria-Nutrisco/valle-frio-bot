@@ -11,8 +11,6 @@ deployments:
       - prefect.deployments.steps.git_clone:
           repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
           branch: master
-      - prefect.deployments.steps.run_shell_script:
-          script: "powershell.exe -Command \"python.exe create_credentials.py\""
     env:
       GOOGLE_DRIVE_CREDENTIALS_PATH: "./credentials.json"
       DRIVE_FOLDER_ID_CARTOLAS: "{{ prefect.blocks.secret.drive-folder-cartolas }}"
@@ -46,8 +44,6 @@ deployments:
       - prefect.deployments.steps.git_clone:
           repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
           branch: master
-      - prefect.deployments.steps.run_shell_script:
-          script: "powershell.exe -Command \"python.exe create_credentials.py\""
     env:
       GOOGLE_DRIVE_CREDENTIALS_PATH: "./credentials.json"
       DRIVE_FOLDER_ID_CARTOLAS: "{{ prefect.blocks.secret.drive-folder-cartolas }}"
