@@ -13,19 +13,30 @@ Las siguientes credenciales se leen desde las variables de entorno del sistema d
 
 ## Cómo Configurar en Windows (Worker)
 
-Para que el worker de Prefect pueda acceder a estas variables, deben estar configuradas como **variables de entorno del sistema**:
+El worker de Prefect corre bajo un usuario específico (ej: `bolea`). Necesitas configurar las variables para ese usuario:
 
-### Opción 1: PowerShell (Permanente)
+### Opción 1: Variables de Entorno del Usuario del Worker
+
+En PowerShell en la máquina del worker (corriendo como el usuario que ejecuta Prefect):
 
 ```powershell
-# En PowerShell como Administrador:
-[Environment]::SetEnvironmentVariable("BANCO_USUARIO", "20.998.399-0", "Machine")
-[Environment]::SetEnvironmentVariable("BANCO_CLAVE", "Cons_2603", "Machine")
-[Environment]::SetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY", "eyJ...", "Machine")
-[Environment]::SetEnvironmentVariable("GAUSSDB_PASSWORD", "Ctas.Corp#2025#", "Machine")
+# Sin necesidad de Administrador - configura para el usuario actual:
+[Environment]::SetEnvironmentVariable("BANCO_USUARIO", "20.998.399-0", "User")
+[Environment]::SetEnvironmentVariable("BANCO_CLAVE", "Cons_2603", "User")
+[Environment]::SetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY", "eyJ...", "User")
+[Environment]::SetEnvironmentVariable("GAUSSDB_PASSWORD", "Ctas.Corp#2025#", "User")
 ```
 
-### Opción 2: Archivo .env local (No pushear a GitHub)
+### Opción 2: Copiar credentials.json al Worker
+
+El archivo `credentials.json` también debe estar disponible en el worker:
+
+```powershell
+# En la máquina del worker, copiar:
+Copy-Item "\\ruta\al\credentials.json" "C:\Users\{usuario_worker}\valle-frio-bot\credentials.json"
+```
+
+### Opción 3: Archivo .env local (No pushear a GitHub)
 
 Si prefieres usar un archivo `.env` local en el worker:
 
