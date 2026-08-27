@@ -2,14 +2,26 @@
 # Deploy: prefect deploy
 
 deployments:
-  - name: valle-frio-bot
-    description: "Bot de descarga de cartolas y comprobantes - Banco Consorcio"
+  - name: valle-frio-bot-1
+    description: "Bot 1 - Descarga de cartolas y nóminas"
+    entrypoint: src/flows/bot1_flow.py:bot1_flow
+    work_pool:
+      name: lenovo-rpa-pool
+    schedule:
+      cron: "0 8,12,17 * * 1-5"
+      timezone: America/Santiago
+    tags:
+      - valle-frio
+      - bot1
+
+  - name: valle-frio-bot-2
+    description: "Bot 2 - Reconciliación Softland vs Cartola"
     entrypoint: src/flows/bot2_flow.py:bot2_flow
     work_pool:
       name: lenovo-rpa-pool
     schedule:
-      cron: "0 8,12,18 * * 1-5"
+      cron: "0 9,13,18 * * 1-5"
       timezone: America/Santiago
     tags:
       - valle-frio
-      - consorcio
+      - bot2
