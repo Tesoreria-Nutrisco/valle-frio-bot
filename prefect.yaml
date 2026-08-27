@@ -12,7 +12,7 @@ deployments:
           repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
           branch: master
     env:
-      GOOGLE_DRIVE_CREDENTIALS_PATH: "./credentials.json"
+      GOOGLE_CREDENTIALS_JSON: "{{ prefect.blocks.secret.google-credentials }}"
       DRIVE_FOLDER_ID_CARTOLAS: "{{ prefect.blocks.secret.drive-folder-cartolas }}"
       DRIVE_FOLDER_ID_COMPROBANTES: "{{ prefect.blocks.secret.drive-folder-comprobantes }}"
       DRIVE_FOLDER_ID_NOMINAS: "{{ prefect.blocks.secret.drive-folder-nominas }}"
@@ -45,7 +45,7 @@ deployments:
           repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
           branch: master
     env:
-      GOOGLE_DRIVE_CREDENTIALS_PATH: "./credentials.json"
+      GOOGLE_CREDENTIALS_JSON: "{{ prefect.blocks.secret.google-credentials }}"
       DRIVE_FOLDER_ID_CARTOLAS: "{{ prefect.blocks.secret.drive-folder-cartolas }}"
       DRIVE_FOLDER_ID_COMPROBANTES: "{{ prefect.blocks.secret.drive-folder-comprobantes }}"
       DRIVE_FOLDER_ID_NOMINAS: "{{ prefect.blocks.secret.drive-folder-nominas }}"
