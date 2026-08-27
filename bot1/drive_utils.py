@@ -42,7 +42,24 @@ def get_drive_service():
             credentials = Credentials.from_service_account_file(str(alt_path), scopes=SCOPES)
             return build("drive", "v3", credentials=credentials)
 
-    # Opción 2: Leer desde variable de entorno JSON (base64)
+    # Opción 2: Cargar desde Prefect Secret Block 'google-credentials'
+    try:
+        from prefect.blocks.system import Secret
+        logger.info("Intentando cargar credentials desde Prefect Secret Block 'google-credentials'")
+        secret_block = Secret.load("google-credentials")
+        creds_json_str = secret_block.get()
+        if creds_json_str:
+            logger.info("Decodificando JSON del Secret Block")
+            creds_dict = json.loads(creds_json_str)
+            credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+            logger.info("✓ Usando credentials desde Prefect Secret Block")
+            return build("drive", "v3", credentials=credentials)
+        else:
+            logger.error("Secret Block 'google-credentials' vacío o None")
+    except Exception as e:
+        logger.error(f"Error cargando Secret Block: {type(e).__name__}: {e}")
+
+    # Opción 3: Leer desde variable de entorno JSON (base64)
     creds_b64 = os.getenv("GOOGLE_CREDENTIALS_B64")
     if creds_b64:
         try:
@@ -69,7 +86,7 @@ def get_drive_service():
     raise FileNotFoundError(
         "No se encontraron credenciales de Google Drive. "
         "Configura una de: (1) credentials.json en el directorio del proyecto, "
-        "(2) GOOGLE_DRIVE_CREDENTIALS_PATH pointing a un archivo, "
+        "(2) Prefect Secret Block 'google-credentials' con el JSON, "
         "(3) GOOGLE_CREDENTIALS_B64 como variable de entorno con JSON en base64, "
         "(4) GOOGLE_CREDENTIALS_JSON como variable de entorno con JSON plano."
     )
