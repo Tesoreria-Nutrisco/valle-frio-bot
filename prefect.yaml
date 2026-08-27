@@ -7,27 +7,6 @@ deployments:
     entrypoint: src/flows/bot1_flow.py:bot1_flow
     work_pool:
       name: lenovo-rpa-pool
-    pull:
-      - prefect.deployments.steps.git_clone:
-          repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
-          branch: master
-    env:
-      GOOGLE_CREDENTIALS_B64: "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAicGRmLWRyaXZlLWJvdCIsCiAgInByaXZhdGVfa2V5X2lkIjogIjg4Y2I1ZDMyZTVjNWU5MGM1MzFlNjYwYmRlNjc1Y2QyYzg2YmQwN2YiLAogICJwcml2YXRlX2tleSI6ICItLS0tLUJFR0lOIFBSSVZBVEUgS0VZLS0tLS1cbk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRQzZkQXJ4ZHJJWittdlJcbktRcTlGYUVZbERERk9Oc1BWU09qeUhHZXpnbXJXVkV2d2JjK1RTb3JnUmx5SnNUTDRSWnRtRFp1UDRBNCtVM2pcbkJ3Y3BzRjgxYmpWWmhtUitjcGRJSlRLTTNtS25PT1F0aUhzWEl3NmRYR0NxK0xJTGlEZkdHWWtxU2RkZTFiWG1cblp2QXZCN2hFNGc0YzFacXczZXdrMWs1V0lXa3lqSXV6eW9qbkFhYzNlY3gxWFhYS2JSSDR0d2FxaDZKNC9sYzlcblBkNXlCWVNBOWRTejg5S0E5d1NCTGxXOU1XSjcwc3BqYk9tRlhRUFNwb0dIL0hJQnJtU0xEN29WYTJkZWs1RW9cbk4zSHh2L3NIVHNnRlpKV016dUV3S2c1cHJZbTVuSThFRnAvaHI2S2V6Wk1TQ1ZqVEZiOFpCUkhoYUpwTjVwaHNcbkxjRkdQSzVkQWdNQkFBRUNnZ0VBQTUvQ3kxdTFHQzBydXZ2ZHZMd2hZL2dVRkpsSGVoT21adHRtczB2L21ITGFcbjBaOVFkUDBNcEo0cDc1NlNTbFl4MkpKOHFGcnRTVU9MUUlPVlNqbW1qVzdRSHZ2WTZJanpVM3NwbkRSWENEZGlcblhxemRtNThFL0lrRzlmdkhLMzNoSmxBVHdFY3NKbE05YWJZMjFVQ0VxVGpDOFNEZWFnYW82RFJrS2J5L2d6UjdcblFic1pJYVZnTjlPdzVwdGR5QWgrS1dSckFMMiszQVFTQlhjdDBySEx1ajNaMTBwVFhlNVdGMFdrNkNyd0g1QVBcbjBibmw2bmwwMHdOK2lTYStvUTVDdEhmdzdNaUg1K0kwQXk5dEN0YjhsK1lsenBON0QxU0laOWkrK25JdTNKYllcbkVnN3YxZW45SmZZK1RCZE5ielpsNFBFa3pzUjRzbkxFVFB0cEMvbEpRUUtCZ1FEMHZobUpmT3hPVFRHVnB1Q1BcbjE5K1ZEVUsyclRxWmdNc1JwSWhGTDZEMzdkOTlaMWhUc1Z0SlJQL3N5MHoyN0RZMk83MTJxam1EWnFJOTVvb2hcblFuelNkREpXenJ3bmpmY0xUOEZyY3g4eUF5RnFOaEpXUmxuSHVMeEQrRnA0NjM4cXpaT3hKRkl2UmZLTWs0VHBcbk5nOFVENkVXaVF1OWMrV2tZUm1zTUxuN2ZRS0JnUUREQjVLL0JhR2Q4TVBNR1g3dUxJS3AyL2E2ZUhwZDNBdWJcblRWOStKM0JzQXB2ZUoyMmttOEJObmwrK3d6dFk4Qkthc2hORWp2YkNlc0hlSlZ2OExlcHhTUlBXamFLZUJPaUNcbmZDbDZUS1hzWUU1aVl4dnN5RU9sdTZrY2tRdUdyMjBDZnJsN3R5TUY5cHFZc3NoVEd6djVMYkc5WmRhb0ZINGpcbjB0Mk1GSnMwWVFLQmdRQzBBTEQxanZ5WjVtcUduN0xmK0t6SGluWTd0eEszWGFOOU9WN0VTL0IvQ09QcjdydG1cbjZyV3lJTjUrQVZSODgyUTM1UjVIRFpHNVZCNFZtdDZTOGJ5dWFLbXhjT0d2MGRrVjU3WGhXazFpVWkwY1dlS0lcbnM3dEtpbE5sUmw3OE9uQlFRZHpUVjF4ZXlucEc3Q1RBQlhOM2xMc3N3T1R5bFRBY0F4S0hzMXJHWFFLQmdENTRcbkxva0JSTU5TVzJVRXhhT0VubFhLSHoyYldaYTI1UURaeDd5ZzVXR3pkRG0wWjJwU2VVWmpkRWVtUVZ3N2lib0RcblVDaWxvbVNvN1hBNmh6dy9lTmpRajRvcDArekpwYkFtRlNNWGFnNU15czY0OERqbjdNTXBXUUhOYytPd1RUcC9cblhPcER2dlFxQ1ZyZjZVcTFib0JpSW95SUVqbkVWcU1pNTlQMnhjQUJBb0dCQU50SGFBWFdRQXNQbFhwSmpPOFFcbjZ4TEdmNWFDTG5oNXVyeGU0cnh5OXFjeWloUnUzcmM5b0ZlRVJ4clhpNURpelRzM1oxS0ZVL2xkbWMzdGVNbDlcbmdZdis5Vm16cWZMZkw5YnM3aVlmQXlicllRd0psUlJuK3RuK094R0ttbEhHcWZWVER5SmpWcHZkci95bWQ5UTRcbmZNM1IxbGpHWmtYWWpuQzkrQ2xRRlVvb1xuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwKICAiY2xpZW50X2VtYWlsIjogImJvdC1kcml2ZS11cGxvYWRlckBwZGYtZHJpdmUtYm90LmlhbS5nc2VydmljZWFjY291bnQuY29tIiwKICAiY2xpZW50X2lkIjogIjExMDE4NDczODU2MTQ3MzU1NDgxMCIsCiAgImF1dGhfdXJpIjogImh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbS9vL29hdXRoMi9hdXRoIiwKICAidG9rZW5fdXJpIjogImh0dHBzOi8vb2F1dGgyLmdvb2dsZWFwaXMuY29tL3Rva2VuIiwKICAiYXV0aF9wcm92aWRlcl94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL29hdXRoMi92MS9jZXJ0cyIsCiAgImNsaWVudF94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL3JvYm90L3YxL21ldGFkYXRhL3g1MDkvYm90LWRyaXZlLXVwbG9hZGVyJTQwcGRmLWRyaXZlLWJvdC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQ=="
-      DRIVE_FOLDER_ID_CARTOLAS: "{{ prefect.blocks.secret.drive-folder-cartolas }}"
-      DRIVE_FOLDER_ID_COMPROBANTES: "{{ prefect.blocks.secret.drive-folder-comprobantes }}"
-      DRIVE_FOLDER_ID_NOMINAS: "{{ prefect.blocks.secret.drive-folder-nominas }}"
-      BANCO_USUARIO: "{{ prefect.blocks.secret.banco-usuario }}"
-      BANCO_CLAVE: "{{ prefect.blocks.secret.banco-clave }}"
-      BANCO_NOMBRE_CARPETA: "consorcio"
-      DOWNLOAD_TEMP_PATH: "./temp_downloads"
-      MODO_DRY_RUN: "false"
-      LOG_PATH: "./logs"
-      SUPABASE_URL: "https://zczzcvlpvnwevoxfosdp.supabase.co"
-      GAUSSDB_HOST: "{{ prefect.blocks.secret.gaussdb-host }}"
-      GAUSSDB_PORT: "{{ prefect.blocks.secret.gaussdb-port }}"
-      GAUSSDB_DB: "{{ prefect.blocks.secret.gaussdb-db }}"
-      GAUSSDB_USER: "{{ prefect.blocks.secret.gauss-user }}"
-      GAUSSDB_PASSWORD: "{{ prefect.blocks.secret.gaussdb-password }}"
     schedule:
       cron: "0 8,12,17 * * 1-5"
       timezone: America/Santiago
@@ -40,29 +19,6 @@ deployments:
     entrypoint: src/flows/bot2_flow.py:bot2_flow
     work_pool:
       name: lenovo-rpa-pool
-    pull:
-      - prefect.deployments.steps.git_clone:
-          repository: https://github.com/Tesoreria-Nutrisco/valle-frio-bot.git
-          branch: master
-    env:
-      GOOGLE_CREDENTIALS_B64: "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAicGRmLWRyaXZlLWJvdCIsCiAgInByaXZhdGVfa2V5X2lkIjogIjg4Y2I1ZDMyZTVjNWU5MGM1MzFlNjYwYmRlNjc1Y2QyYzg2YmQwN2YiLAogICJwcml2YXRlX2tleSI6ICItLS0tLUJFR0lOIFBSSVZBVEUgS0VZLS0tLS1cbk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRQzZkQXJ4ZHJJWittdlJcbktRcTlGYUVZbERERk9Oc1BWU09qeUhHZXpnbXJXVkV2d2JjK1RTb3JnUmx5SnNUTDRSWnRtRFp1UDRBNCtVM2pcbkJ3Y3BzRjgxYmpWWmhtUitjcGRJSlRLTTNtS25PT1F0aUhzWEl3NmRYR0NxK0xJTGlEZkdHWWtxU2RkZTFiWG1cblp2QXZCN2hFNGc0YzFacXczZXdrMWs1V0lXa3lqSXV6eW9qbkFhYzNlY3gxWFhYS2JSSDR0d2FxaDZKNC9sYzlcblBkNXlCWVNBOWRTejg5S0E5d1NCTGxXOU1XSjcwc3BqYk9tRlhRUFNwb0dIL0hJQnJtU0xEN29WYTJkZWs1RW9cbk4zSHh2L3NIVHNnRlpKV016dUV3S2c1cHJZbTVuSThFRnAvaHI2S2V6Wk1TQ1ZqVEZiOFpCUkhoYUpwTjVwaHNcbkxjRkdQSzVkQWdNQkFBRUNnZ0VBQTUvQ3kxdTFHQzBydXZ2ZHZMd2hZL2dVRkpsSGVoT21adHRtczB2L21ITGFcbjBaOVFkUDBNcEo0cDc1NlNTbFl4MkpKOHFGcnRTVU9MUUlPVlNqbW1qVzdRSHZ2WTZJanpVM3NwbkRSWENEZGlcblhxemRtNThFL0lrRzlmdkhLMzNoSmxBVHdFY3NKbE05YWJZMjFVQ0VxVGpDOFNEZWFnYW82RFJrS2J5L2d6UjdcblFic1pJYVZnTjlPdzVwdGR5QWgrS1dSckFMMiszQVFTQlhjdDBySEx1ajNaMTBwVFhlNVdGMFdrNkNyd0g1QVBcbjBibmw2bmwwMHdOK2lTYStvUTVDdEhmdzdNaUg1K0kwQXk5dEN0YjhsK1lsenBON0QxU0laOWkrK25JdTNKYllcbkVnN3YxZW45SmZZK1RCZE5ielpsNFBFa3pzUjRzbkxFVFB0cEMvbEpRUUtCZ1FEMHZobUpmT3hPVFRHVnB1Q1BcbjE5K1ZEVUsyclRxWmdNc1JwSWhGTDZEMzdkOTlaMWhUc1Z0SlJQL3N5MHoyN0RZMk83MTJxam1EWnFJOTVvb2hcblFuelNkREpXenJ3bmpmY0xUOEZyY3g4eUF5RnFOaEpXUmxuSHVMeEQrRnA0NjM4cXpaT3hKRkl2UmZLTWs0VHBcbk5nOFVENkVXaVF1OWMrV2tZUm1zTUxuN2ZRS0JnUUREQjVLL0JhR2Q4TVBNR1g3dUxJS3AyL2E2ZUhwZDNBdWJcblRWOStKM0JzQXB2ZUoyMmttOEJObmwrK3d6dFk4Qkthc2hORWp2YkNlc0hlSlZ2OExlcHhTUlBXamFLZUJPaUNcbmZDbDZUS1hzWUU1aVl4dnN5RU9sdTZrY2tRdUdyMjBDZnJsN3R5TUY5cHFZc3NoVEd6djVMYkc5WmRhb0ZINGpcbjB0Mk1GSnMwWVFLQmdRQzBBTEQxanZ5WjVtcUduN0xmK0t6SGluWTd0eEszWGFOOU9WN0VTL0IvQ09QcjdydG1cbjZyV3lJTjUrQVZSODgyUTM1UjVIRFpHNVZCNFZtdDZTOGJ5dWFLbXhjT0d2MGRrVjU3WGhXazFpVWkwY1dlS0lcbnM3dEtpbE5sUmw3OE9uQlFRZHpUVjF4ZXlucEc3Q1RBQlhOM2xMc3N3T1R5bFRBY0F4S0hzMXJHWFFLQmdENTRcbkxva0JSTU5TVzJVRXhhT0VubFhLSHoyYldaYTI1UURaeDd5ZzVXR3pkRG0wWjJwU2VVWmpkRWVtUVZ3N2lib0RcblVDaWxvbVNvN1hBNmh6dy9lTmpRajRvcDArekpwYkFtRlNNWGFnNU15czY0OERqbjdNTXBXUUhOYytPd1RUcC9cblhPcER2dlFxQ1ZyZjZVcTFib0JpSW95SUVqbkVWcU1pNTlQMnhjQUJBb0dCQU50SGFBWFdRQXNQbFhwSmpPOFFcbjZ4TEdmNWFDTG5oNXVyeGU0cnh5OXFjeWloUnUzcmM5b0ZlRVJ4clhpNURpelRzM1oxS0ZVL2xkbWMzdGVNbDlcbmdZdis5Vm16cWZMZkw5YnM3aVlmQXlicllRd0psUlJuK3RuK094R0ttbEhHcWZWVER5SmpWcHZkci95bWQ5UTRcbmZNM1IxbGpHWmtYWWpuQzkrQ2xRRlVvb1xuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwKICAiY2xpZW50X2VtYWlsIjogImJvdC1kcml2ZS11cGxvYWRlckBwZGYtZHJpdmUtYm90LmlhbS5nc2VydmljZWFjY291bnQuY29tIiwKICAiY2xpZW50X2lkIjogIjExMDE4NDczODU2MTQ3MzU1NDgxMCIsCiAgImF1dGhfdXJpIjogImh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbS9vL29hdXRoMi9hdXRoIiwKICAidG9rZW5fdXJpIjogImh0dHBzOi8vb2F1dGgyLmdvb2dsZWFwaXMuY29tL3Rva2VuIiwKICAiYXV0aF9wcm92aWRlcl94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL29hdXRoMi92MS9jZXJ0cyIsCiAgImNsaWVudF94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL3JvYm90L3YxL21ldGFkYXRhL3g1MDkvYm90LWRyaXZlLXVwbG9hZGVyJTQwcGRmLWRyaXZlLWJvdC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQ=="
-      DRIVE_FOLDER_ID_CARTOLAS: "{{ prefect.blocks.secret.drive-folder-cartolas }}"
-      DRIVE_FOLDER_ID_COMPROBANTES: "{{ prefect.blocks.secret.drive-folder-comprobantes }}"
-      DRIVE_FOLDER_ID_NOMINAS: "{{ prefect.blocks.secret.drive-folder-nominas }}"
-      BANCO_USUARIO: "{{ prefect.blocks.secret.banco-usuario }}"
-      BANCO_CLAVE: "{{ prefect.blocks.secret.banco-clave }}"
-      BANCO_NOMBRE_CARPETA: "consorcio"
-      DOWNLOAD_TEMP_PATH: "./temp_downloads"
-      MODO_DRY_RUN: "false"
-      LOG_PATH: "./logs"
-      SUPABASE_URL: "https://zczzcvlpvnwevoxfosdp.supabase.co"
-      GAUSSDB_HOST: "{{ prefect.blocks.secret.gaussdb-host }}"
-      GAUSSDB_PORT: "{{ prefect.blocks.secret.gaussdb-port }}"
-      GAUSSDB_DB: "{{ prefect.blocks.secret.gaussdb-db }}"
-      GAUSSDB_USER: "{{ prefect.blocks.secret.gauss-user }}"
-      GAUSSDB_PASSWORD: "{{ prefect.blocks.secret.gaussdb-password }}"
-      MODO_TEST: "false"
-      CORREO_PRUEBA: "javiera.munozc@nutrisco.com"
     schedule:
       cron: "0 9,13,18 * * 1-5"
       timezone: America/Santiago
