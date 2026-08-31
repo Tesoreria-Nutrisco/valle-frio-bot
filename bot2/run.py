@@ -421,6 +421,91 @@ def procesar_no_cuadra(no_cuadra: List[Dict]) -> int:
     return alertadas
 
 
+def sincronizar_comprobantes_historicos():
+    """
+    Sincroniza comprobantes de pagos ya notificados a la carpeta Comprobantes Nóminas.
+    Útil para backfill de pagos históricos.
+    """
+    from supabase_bot2 import get_supabase
+
+    logger.info("=" * 80)
+    logger.info("SINCRONIZANDO COMPROBANTES HISTÓRICOS")
+    logger.info("=" * 80)
+
+    try:
+        supabase = get_supabase()
+
+        # Consultar pagos notificados
+        response = supabase.table("pagos_bot2").select("*").eq("estado", "notificado").execute()
+        pagos = response.data if response.data else []
+
+        logger.info(f"Encontrados {len(pagos)} pagos notificados")
+
+        drive = get_drive_service()
+        TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
+        copiados = 0
+
+        for pago in pagos:
+            try:
+                # Obtener info del productor
+                productor_cod = pago.get("productor_cod")
+                email_final, _, _, productor_nombre = obtener_contacto_productor(productor_cod)
+
+                if not productor_nombre:
+                    productor_nombre = productor_cod
+
+                # Buscar comprobante
+                fecha_pago = pago.get("fecha_pago", "")
+                rut_completo = pago.get("productor_rut", "")
+                rut_limpio = rut_completo.replace(".", "").replace("-", "").replace(" ", "")
+
+                ruta_local, ruta_drive, nombre_archivo = buscar_comprobante_en_drive(
+                    float(pago.get("monto", 0)), str(fecha_pago), rut_limpio
+                )
+
+                if ruta_drive and nombre_archivo:
+                    # Copiar a carpeta del proveedor
+                    carpeta_proveedor = obtener_carpeta_comprobantes_proveedor(
+                        drive,
+                        DRIVE_FOLDER_ID_COMPROBANTES_NOMINAS,
+                        productor_nombre,
+                        TEAM_DRIVE_ID
+                    )
+
+                    query = (
+                        f"name='{nombre_archivo}' "
+                        f"and mimeType='application/pdf' "
+                        f"and trashed=false"
+                    )
+                    results = drive.files().list(
+                        q=query,
+                        pageSize=1,
+                        fields="files(id)",
+                        supportsAllDrives=True,
+                        includeItemsFromAllDrives=True,
+                        corpora="allDrives"
+                    ).execute()
+                    files = results.get("files", [])
+
+                    if files:
+                        file_id = files[0]["id"]
+                        copiar_archivo_drive(drive, file_id, nombre_archivo, carpeta_proveedor)
+                        copiados += 1
+                        logger.info(f"  [OK] {productor_nombre}: {nombre_archivo}")
+            except Exception as e:
+                logger.warning(f"  Error con {pago.get('productor_cod')}: {e}")
+                continue
+
+        logger.info("=" * 80)
+        logger.info(f"Comprobantes sincronizados: {copiados}/{len(pagos)}")
+        logger.info("=" * 80)
+
+    except Exception as e:
+        logger.error(f"Error sincronizando históricos: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
+
 def main(fecha_testing: str = None):
     """
     Orquestación principal de Bot 2.
@@ -567,8 +652,12 @@ def main(fecha_testing: str = None):
 
 
 if __name__ == "__main__":
-    fecha_testing = None
-    if len(sys.argv) > 1:
-        fecha_testing = sys.argv[1]
+    if len(sys.argv) > 1 and sys.argv[1] == "--sync":
+        # Sincronizar comprobantes históricos
+        sincronizar_comprobantes_historicos()
+    else:
+        fecha_testing = None
+        if len(sys.argv) > 1:
+            fecha_testing = sys.argv[1]
 
-    main(fecha_testing)
+        main(fecha_testing)
