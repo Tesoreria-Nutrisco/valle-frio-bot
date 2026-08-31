@@ -426,17 +426,17 @@ def sincronizar_comprobantes_historicos():
     Sincroniza comprobantes de pagos ya notificados a la carpeta Comprobantes Nóminas.
     Útil para backfill de pagos históricos.
     """
-    from supabase_bot2 import get_supabase
+    from supabase_client import get_client
 
     logger.info("=" * 80)
     logger.info("SINCRONIZANDO COMPROBANTES HISTÓRICOS")
     logger.info("=" * 80)
 
     try:
-        supabase = get_supabase()
+        supabase = get_client()
 
         # Consultar pagos notificados
-        response = supabase.table("pagos_bot2").select("*").eq("estado", "notificado").execute()
+        response = supabase.table("bot2_pagos_notificados").select("*").eq("estado", "notificado").execute()
         pagos = response.data if response.data else []
 
         logger.info(f"Encontrados {len(pagos)} pagos notificados")
