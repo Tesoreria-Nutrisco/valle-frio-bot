@@ -268,51 +268,6 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple
             )
             logger.info(f"  Comprobante: {ruta_drive or 'no encontrado'}")
 
-            # PASO 4.5: Si se encontró comprobante, copiar a carpeta del proveedor
-            if ruta_drive and nombre_archivo:
-                try:
-                    # Obtener Google Drive service
-                    drive = get_drive_service()
-                    TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
-
-                    # Obtener carpeta del proveedor en Comprobantes Nóminas
-                    carpeta_proveedor = obtener_carpeta_comprobantes_proveedor(
-                        drive,
-                        DRIVE_FOLDER_ID_COMPROBANTES_NOMINAS,
-                        productor_nombre,
-                        TEAM_DRIVE_ID
-                    )
-
-                    # Buscar el ID del archivo en Drive para copiarlo
-                    # (buscamos en la misma ruta donde lo encontramos)
-                    from bot2.run import buscar_comprobante_en_drive
-                    from datetime import datetime
-                    fecha_dt = datetime.strptime(str(fecha_pago).split()[0], "%Y-%m-%d")
-
-                    query = (
-                        f"name='{nombre_archivo}' "
-                        f"and mimeType='application/pdf' "
-                        f"and trashed=false"
-                    )
-                    results = drive.files().list(
-                        q=query,
-                        pageSize=1,
-                        fields="files(id)",
-                        supportsAllDrives=True,
-                        includeItemsFromAllDrives=True,
-                        corpora="allDrives"
-                    ).execute()
-                    files = results.get("files", [])
-
-                    if files:
-                        file_id = files[0]["id"]
-                        copiar_archivo_drive(drive, file_id, nombre_archivo, carpeta_proveedor)
-                        logger.info(f"  [OK] Comprobante copiado a Comprobantes Nóminas/{productor_nombre}/")
-                    else:
-                        logger.warning(f"  [WARN] No se pudo obtener ID del comprobante para copiar")
-                except Exception as e:
-                    logger.warning(f"  Error copiando comprobante a carpeta del proveedor: {e}")
-
             # PASO 5: Decidir estado inicial según disponibilidad de email
             if email_final:
                 # Caso A: Hay email — registrar como 'confirmado' e intentar envío
@@ -346,6 +301,41 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple
                     actualizar_pago_a_notificado(cpb_ano, cpb_num, productor_cod)
                     logger.info(f"  [OK] Email enviado y estado actualizado a notificado")
                     procesados += 1
+
+                    # PASO 7B: Copiar comprobante a Comprobantes Nóminas (solo si notificado)
+                    if ruta_drive and nombre_archivo:
+                        try:
+                            drive = get_drive_service()
+                            TEAM_DRIVE_ID = "0AAy1zHCqHR5ZUk9PVA"
+
+                            carpeta_proveedor = obtener_carpeta_comprobantes_proveedor(
+                                drive,
+                                DRIVE_FOLDER_ID_COMPROBANTES_NOMINAS,
+                                productor_nombre,
+                                TEAM_DRIVE_ID
+                            )
+
+                            query = (
+                                f"name='{nombre_archivo}' "
+                                f"and mimeType='application/pdf' "
+                                f"and trashed=false"
+                            )
+                            results = drive.files().list(
+                                q=query,
+                                pageSize=1,
+                                fields="files(id)",
+                                supportsAllDrives=True,
+                                includeItemsFromAllDrives=True,
+                                corpora="allDrives"
+                            ).execute()
+                            files = results.get("files", [])
+
+                            if files:
+                                file_id = files[0]["id"]
+                                copiar_archivo_drive(drive, file_id, nombre_archivo, carpeta_proveedor)
+                                logger.info(f"  [OK] Comprobante copiado a Comprobantes Nóminas/{productor_nombre}/")
+                        except Exception as e:
+                            logger.warning(f"  Error copiando comprobante: {e}")
                 else:
                     logger.warning(f"  [FAIL] Email falló, manteniendo estado confirmado para reintentar próxima corrida")
 
