@@ -226,3 +226,71 @@ def upload_file(service, file_path, folder_id, file_name=None):
     logger.info(f"Archivo '{file_name}' subido exitosamente: {file_id}")
 
     return file_id
+
+
+def obtener_carpeta_comprobantes_proveedor(service, raiz_folder_id, nombre_proveedor, team_drive_id=None):
+    """
+    Obtiene o crea la estructura: Comprobantes Nóminas/[nombre_proveedor]
+
+    Args:
+        service: Google Drive service
+        raiz_folder_id: ID de la carpeta raíz donde crear Comprobantes Nóminas
+        nombre_proveedor: Nombre del proveedor para la subcarpeta
+        team_drive_id: ID de Team Drive (si aplica)
+
+    Returns:
+        ID de la carpeta del proveedor
+    """
+    # Nivel 1: Crear o buscar "Comprobantes Nóminas"
+    folder_comprobantes = obtener_o_crear_carpeta(
+        service,
+        "Comprobantes Nóminas",
+        raiz_folder_id,
+        team_drive_id
+    )
+
+    # Nivel 2: Crear o buscar carpeta del proveedor
+    if not nombre_proveedor:
+        nombre_proveedor = "Sin Proveedor"
+
+    folder_proveedor = obtener_o_crear_carpeta(
+        service,
+        nombre_proveedor,
+        folder_comprobantes,
+        team_drive_id
+    )
+
+    logger.info(f"Carpeta de proveedor '{nombre_proveedor}' lista: {folder_proveedor}")
+    return folder_proveedor
+
+
+def copiar_archivo_drive(service, file_id, nombre_archivo, carpeta_destino_id):
+    """
+    Copia un archivo en Google Drive a una carpeta destino.
+
+    Args:
+        service: Google Drive service
+        file_id: ID del archivo a copiar
+        nombre_archivo: Nombre para la copia
+        carpeta_destino_id: ID de la carpeta destino
+
+    Returns:
+        ID del archivo copiado, o None si falla
+    """
+    try:
+        file_metadata = {
+            "name": nombre_archivo,
+            "parents": [carpeta_destino_id]
+        }
+
+        copied_file = service.files().copy(
+            fileId=file_id,
+            body=file_metadata,
+            supportsAllDrives=True
+        ).execute()
+
+        logger.info(f"Archivo '{nombre_archivo}' copiado exitosamente a carpeta {carpeta_destino_id}")
+        return copied_file.get("id")
+    except Exception as e:
+        logger.error(f"Error copiando archivo {file_id} a {carpeta_destino_id}: {e}")
+        return None
