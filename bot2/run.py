@@ -29,7 +29,7 @@ sys.path.insert(0, bot1_path)
 sys.path.insert(0, bot2_path)
 
 from config import MODO_TEST, BANCO_CONSORCIO, CAPITAL_PROPIO, LOG_PATH, CORREO_PRUEBA
-from config import DRIVE_FOLDER_ID_COMPROBANTES, BANCO_NOMBRE_CARPETA
+from config import DRIVE_FOLDER_ID_COMPROBANTES, DRIVE_FOLDER_ID_COMPROBANTES_NOMINAS, BANCO_NOMBRE_CARPETA
 from gaussdb_client import obtener_egresos_softland, obtener_contacto_productor
 from cartola_cleaner import descargar_cartolas_rango
 from drive_utils import (
@@ -278,7 +278,7 @@ def procesar_confirmados(confirmados: List[Dict], fecha_pago: datetime) -> Tuple
                     # Obtener carpeta del proveedor en Comprobantes Nóminas
                     carpeta_proveedor = obtener_carpeta_comprobantes_proveedor(
                         drive,
-                        DRIVE_FOLDER_ID_COMPROBANTES,
+                        DRIVE_FOLDER_ID_COMPROBANTES_NOMINAS,
                         productor_nombre,
                         TEAM_DRIVE_ID
                     )
