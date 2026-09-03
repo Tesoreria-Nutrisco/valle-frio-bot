@@ -72,7 +72,7 @@ def verificar_cartola_transaccion(num_transaccion: str) -> bool:
 
 def insertar_cartola_transaccion(num_transaccion: str, fecha_contable, monto: float) -> bool:
     """
-    Inserta una nueva transacción de cartola usando RPC.
+    Inserta una nueva transacción de cartola directamente en la tabla.
 
     Args:
         num_transaccion: Número de transacción
@@ -84,14 +84,11 @@ def insertar_cartola_transaccion(num_transaccion: str, fecha_contable, monto: fl
     """
     try:
         client = _get_client()
-        client.rpc(
-            "insertar_cartola",
-            {
-                "p_num_transaccion": num_transaccion,
-                "p_fecha_contable": str(fecha_contable),
-                "p_monto": monto
-            }
-        ).execute()
+        client.table("bot1_cartola_transacciones").insert({
+            "num_transaccion": num_transaccion,
+            "fecha_contable": str(fecha_contable),
+            "monto": monto
+        }).execute()
         return True
     except Exception as e:
         raise Exception(f"Error insertando cartola: {e}")
