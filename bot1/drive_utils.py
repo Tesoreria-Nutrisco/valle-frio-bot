@@ -15,60 +15,42 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
-async def get_drive_service():
-    """Autentica con Google Drive usando Prefect Secret Block."""
-    # ÚNICA OPCIÓN: Prefect Secret Block 'google-credentials-valle-frio'
-    logger.info("=" * 80)
-    logger.info("INTENTANDO CARGAR CREDENCIALES DESDE PREFECT SECRET BLOCK")
-    logger.info("=" * 80)
+def get_drive_service():
+    """
+    Autentica con Google Drive usando service account.
 
-    try:
-        from prefect.blocks.system import Secret
+    En Prefect las credenciales llegan por GOOGLE_CREDENTIALS_JSON, que
+    src/flows/prefect_secrets.py puebla desde el Secret Block
+    'google-credentials-valle-frio' antes de importar los módulos del bot.
+    Corriendo en local sin ese paso, se usa el credentials.json del proyecto.
 
-        logger.info("Paso 1: Importando Secret Block")
-        logger.info("Paso 2: Llamando await Secret.load('google-credentials-valle-frio')")
-        secret_block = await Secret.load("google-credentials-valle-frio")
-        logger.info(f"Paso 3: Secret Block cargado: {secret_block}")
+    Es sync a propósito: Bot 2 la llama desde código sync.
+    """
+    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if creds_json:
+        logger.info("Usando credentials desde GOOGLE_CREDENTIALS_JSON")
+        credentials = Credentials.from_service_account_info(
+            json.loads(creds_json), scopes=SCOPES
+        )
+        return build("drive", "v3", credentials=credentials)
 
-        logger.info("Paso 4: Obteniendo valor con .get()")
-        creds_json_str = secret_block.get()
-        logger.info(f"Paso 5: Valor obtenido, type={type(creds_json_str)}")
+    rutas = [CREDENTIALS_PATH] if CREDENTIALS_PATH else []
+    rutas += ["credentials.json", str(Path.home() / "credentials.json")]
 
-        if not creds_json_str:
-            raise ValueError("Secret Block vacío")
+    for ruta in rutas:
+        archivo = Path(ruta)
+        if archivo.exists():
+            logger.info(f"Usando credentials desde archivo: {archivo}")
+            credentials = Credentials.from_service_account_file(
+                str(archivo), scopes=SCOPES
+            )
+            return build("drive", "v3", credentials=credentials)
 
-        # Secret Block devuelve dict directamente, no string JSON
-        if isinstance(creds_json_str, str):
-            logger.info("Paso 6: Parseando JSON (es string)")
-            creds_dict = json.loads(creds_json_str)
-        else:
-            logger.info("Paso 6: Ya es dict, sin parse")
-            creds_dict = creds_json_str
-
-        logger.info(f"Paso 7: Credenciales listas, keys={list(creds_dict.keys())[:5]}")
-
-        logger.info("Paso 8: Creando credenciales de Google")
-        credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-        logger.info("Paso 9: Credentials creadas")
-
-        logger.info("Paso 10: Construyendo servicio Drive")
-        service = build("drive", "v3", credentials=credentials)
-        logger.info("✓ ÉXITO: Credenciales cargadas desde Secret Block")
-        logger.info("=" * 80)
-        return service
-
-    except Exception as e:
-        logger.error("=" * 80)
-        logger.error(f"✗ ERROR CARGANDO SECRET BLOCK")
-        logger.error(f"Tipo: {type(e).__name__}")
-        logger.error(f"Mensaje: {e}")
-        logger.error("=" * 80, exc_info=True)
-        raise FileNotFoundError(
-            "No se encontraron credenciales de Google Drive. "
-            "Prefect Secret Block 'google-credentials-valle-frio' no disponible. "
-        "(2) Prefect Secret Block 'google-credentials' con el JSON, "
-        "(3) GOOGLE_CREDENTIALS_B64 como variable de entorno con JSON en base64, "
-        "(4) GOOGLE_CREDENTIALS_JSON como variable de entorno con JSON plano."
+    raise FileNotFoundError(
+        "No se encontraron credenciales de Google Drive. "
+        "En Prefect deben venir del Secret Block 'google-credentials-valle-frio' "
+        "(lo carga src/flows/prefect_secrets.py); en local, de un credentials.json "
+        "en la raíz del proyecto."
     )
 
 

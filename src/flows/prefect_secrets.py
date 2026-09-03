@@ -10,6 +10,7 @@ En local el .env sigue funcionando como fallback: si un bloque no está
 disponible, el valor que ya venga en el entorno se conserva.
 """
 
+import json
 import logging
 import os
 
@@ -20,6 +21,8 @@ SECRETOS = {
     # Banco Consorcio
     "banco-usuario": "BANCO_USUARIO",
     "banco-clave": "BANCO_CLAVE",
+    # Google Drive (service account completa, la consume drive_utils)
+    "google-credentials-valle-frio": "GOOGLE_CREDENTIALS_JSON",
     # Google Drive (IDs de carpetas)
     "drive-folder-cartolas": "DRIVE_FOLDER_ID_CARTOLAS",
     "drive-folder-comprobantes": "DRIVE_FOLDER_ID_COMPROBANTES",
@@ -60,6 +63,11 @@ async def cargar_secretos() -> None:
         if valor is None or valor == "":
             faltantes.append(f"{bloque} (vacío)")
             continue
+
+        # Los bloques que guardan JSON (ej. la service account de Drive) vuelven
+        # como dict; str() daría repr de Python, no JSON válido.
+        if isinstance(valor, (dict, list)):
+            valor = json.dumps(valor)
 
         os.environ[variable] = str(valor)
         cargados.append(variable)
