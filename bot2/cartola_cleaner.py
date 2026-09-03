@@ -4,7 +4,7 @@ Descarga y limpia cartola cruda del banco desde Google Drive.
 
 import logging
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 import tempfile
@@ -78,116 +78,109 @@ def descargar_cartolas_rango(banco: str, dias_atras: int = 30, fecha_hasta: date
 
         consorcio_id = consorcio_folders[0]['id']
 
-        # Buscar 2026
-        query = f"parents='{consorcio_id}' and name='2026' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-        results = drive.files().list(
-            q=query,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True,
-            pageSize=10,
-            fields='files(id, name)'
-        ).execute()
-        year_folders = results.get('files', [])
-        if not year_folders:
-            logger.warning("No se encontró carpeta '2026'")
-            return None
+        # Meses que abarca el rango, en orden (puede cruzar de año)
+        meses_del_rango = []
+        cursor = fecha_desde.replace(day=1)
+        ultimo_mes = fecha_hasta_date.replace(day=1)
+        while cursor <= ultimo_mes:
+            meses_del_rango.append((cursor.year, cursor.month))
+            cursor = (cursor + timedelta(days=32)).replace(day=1)
 
-        year_id = year_folders[0]['id']
-
-        # Buscar 08
-        query = f"parents='{year_id}' and name='08' and mimeType='application/vnd.google-apps.folder' and trashed=false"
-        results = drive.files().list(
-            q=query,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True,
-            pageSize=10,
-            fields='files(id, name)'
-        ).execute()
-        month_folders = results.get('files', [])
-        if not month_folders:
-            logger.warning("No se encontró carpeta '08'")
-            return None
-
-        month_id = month_folders[0]['id']
-
-        # Listar TODAS las carpetas de día dentro de 08
-        query = f"parents='{month_id}' and trashed=false"
-        results = drive.files().list(
-            q=query,
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True,
-            pageSize=100,
-            orderBy='name',
-            fields='files(id, name, mimeType)'
-        ).execute()
-
-        day_folders = results.get('files', [])
-        if not day_folders:
-            logger.warning("No se encontraron carpetas de día en 08")
-            return None
-
-        logger.info(f"Carpetas de día encontradas: {len(day_folders)}")
+        logger.info(f"Meses a revisar: {meses_del_rango}")
 
         # Descargar, limpiar y combinar TODAS las cartolas dentro del rango de fechas
         cartolas_limpias = []
-        for day_folder in day_folders:
-            if 'folder' not in day_folder['mimeType']:
-                continue
 
-            day_id = day_folder['id']
-            day_name = day_folder['name']
+        for anio_num, mes_num in meses_del_rango:
+            mes_str = f"{mes_num:02d}"
 
-            # Filtrar: solo incluir días dentro del rango [fecha_desde, fecha_hasta_date]
-            try:
-                day_date = datetime.strptime(day_name, "%d").replace(
-                    year=fecha_hasta_date.year,
-                    month=fecha_hasta_date.month
-                ).date()
-                if day_date < fecha_desde or day_date > fecha_hasta_date:
-                    logger.debug(f"  Saltando día {day_name}: fuera del rango [{fecha_desde}, {fecha_hasta_date}]")
-                    continue
-            except (ValueError, TypeError):
-                logger.debug(f"  Saltando día {day_name}: no es formato DD válido")
-                continue
-
-            # Buscar cartolas en esta carpeta de día
-            query = f"parents='{day_id}' and name contains 'cartola' and trashed=false"
-            results = drive.files().list(
+            query = (f"parents='{consorcio_id}' and name='{anio_num}' "
+                     f"and mimeType='application/vnd.google-apps.folder' and trashed=false")
+            year_folders = drive.files().list(
                 q=query,
                 supportsAllDrives=True,
                 includeItemsFromAllDrives=True,
-                pageSize=50,
-                fields='files(id, name, modifiedTime)'
-            ).execute()
+                pageSize=10,
+                fields='files(id, name)'
+            ).execute().get('files', [])
+            if not year_folders:
+                logger.info(f"Sin carpeta de año {anio_num}, se omite")
+                continue
 
-            day_files = results.get('files', [])
+            query = (f"parents='{year_folders[0]['id']}' and name='{mes_str}' "
+                     f"and mimeType='application/vnd.google-apps.folder' and trashed=false")
+            month_folders = drive.files().list(
+                q=query,
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+                pageSize=10,
+                fields='files(id, name)'
+            ).execute().get('files', [])
+            if not month_folders:
+                logger.info(f"Sin carpeta de mes {anio_num}-{mes_str}, se omite")
+                continue
 
-            for file_info in day_files:
-                try:
-                    file_id = file_info['id']
-                    file_name = file_info['name']
-                    logger.info(f"  Descargando día {day_name}: {file_name}")
+            day_folders = drive.files().list(
+                q=f"parents='{month_folders[0]['id']}' and trashed=false",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+                pageSize=100,
+                orderBy='name',
+                fields='files(id, name, mimeType)'
+            ).execute().get('files', [])
 
-                    # Descargar
-                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
-                        request = drive.files().get_media(fileId=file_id)
-                        downloader = MediaIoBaseDownload(tmp, request)
-                        done = False
-                        while not done:
-                            _, done = downloader.next_chunk()
-                        tmp_path = tmp.name
+            logger.info(f"{anio_num}-{mes_str}: {len(day_folders)} carpetas de día")
 
-                    # Limpiar
-                    df = _limpiar_cartola(tmp_path, banco)
-                    if df is not None and len(df) > 0:
-                        cartolas_limpias.append(df)
-                        logger.info(f"    [OK] {len(df)} cargos NÓMINA encontrados")
-
-                    Path(tmp_path).unlink()  # Eliminar temporal
-
-                except Exception as e:
-                    logger.warning(f"  Error descargando {file_name}: {e}")
+            for day_folder in day_folders:
+                if 'folder' not in day_folder['mimeType']:
                     continue
+
+                day_name = day_folder['name']
+
+                # La fecha se arma con el año y mes DE LA CARPETA, no con los de
+                # fecha_hasta: si no, un día de agosto se leería como de septiembre.
+                try:
+                    day_date = date(anio_num, mes_num, int(day_name))
+                except ValueError:
+                    logger.debug(f"  Saltando '{day_name}': no es un día válido")
+                    continue
+
+                if day_date < fecha_desde or day_date > fecha_hasta_date:
+                    logger.debug(f"  Saltando {day_date}: fuera del rango")
+                    continue
+
+                query = f"parents='{day_folder['id']}' and name contains 'cartola' and trashed=false"
+                day_files = drive.files().list(
+                    q=query,
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True,
+                    pageSize=50,
+                    fields='files(id, name, modifiedTime)'
+                ).execute().get('files', [])
+
+                for file_info in day_files:
+                    file_name = file_info['name']
+                    try:
+                        logger.info(f"  Descargando {day_date}: {file_name}")
+
+                        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+                            request = drive.files().get_media(fileId=file_info['id'])
+                            downloader = MediaIoBaseDownload(tmp, request)
+                            done = False
+                            while not done:
+                                _, done = downloader.next_chunk()
+                            tmp_path = tmp.name
+
+                        df = _limpiar_cartola(tmp_path, banco)
+                        if df is not None and len(df) > 0:
+                            cartolas_limpias.append(df)
+                            logger.info(f"    [OK] {len(df)} cargos NÓMINA encontrados")
+
+                        Path(tmp_path).unlink()  # Eliminar temporal
+
+                    except Exception as e:
+                        logger.warning(f"  Error descargando {file_name}: {e}")
+                        continue
 
         if not cartolas_limpias:
             logger.warning("No se pudo limpiar ninguna cartola")
@@ -195,6 +188,20 @@ def descargar_cartolas_rango(banco: str, dias_atras: int = 30, fecha_hasta: date
 
         # Combinar todas en un DataFrame
         cartola_combinada = pd.concat(cartolas_limpias, ignore_index=True)
+
+        # Cada archivo trae el mes acumulado hasta su fecha, así que un mismo cargo
+        # aparece en varias cartolas. Sin deduplicar, el matcher procesaría el mismo
+        # pago una vez por archivo.
+        antes = len(cartola_combinada)
+        clave = 'num' if 'num' in cartola_combinada.columns else None
+        if clave:
+            cartola_combinada = cartola_combinada.drop_duplicates(subset=[clave])
+        else:
+            cartola_combinada = cartola_combinada.drop_duplicates()
+
+        if len(cartola_combinada) < antes:
+            logger.info(f"Deduplicadas {antes - len(cartola_combinada)} líneas repetidas entre cartolas")
+
         logger.info(f"Cartola combinada: {len(cartola_combinada)} cargos NÓMINA totales")
 
         return cartola_combinada
