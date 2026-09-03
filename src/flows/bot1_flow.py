@@ -17,7 +17,7 @@ from prefect import flow, task, get_run_logger
 
 
 @task(name="ejecutar-bot1-task")
-def execute_bot1_task(fecha_testing: str = None):
+async def execute_bot1_task(fecha_testing: str = None):
     """Tarea que ejecuta Bot 1"""
     logger = get_run_logger()
 
@@ -29,7 +29,7 @@ def execute_bot1_task(fecha_testing: str = None):
     try:
         from bot1.run import BotConsorcio
         bot = BotConsorcio(fecha_testing=datetime.strptime(fecha_testing, "%Y-%m-%d"))
-        resultado = bot.ejecutar()
+        resultado = await bot.ejecutar()
         return resultado
     except Exception as e:
         logger.error(f"Error en Bot 1: {e}", exc_info=True)
@@ -37,7 +37,7 @@ def execute_bot1_task(fecha_testing: str = None):
 
 
 @flow(name="valle-frio-bot-flow", description="Bot 1 - Descarga de cartolas y nóminas")
-def bot1_flow(fecha_testing: Optional[str] = None):
+async def bot1_flow(fecha_testing: Optional[str] = None):
     """
     Flow principal de Bot 1 para Prefect
 
@@ -49,7 +49,7 @@ def bot1_flow(fecha_testing: Optional[str] = None):
     logger.info("INICIANDO BOT 1 - DESCARGA DE CARTOLAS Y NÓMINAS")
     logger.info("=" * 80)
 
-    resultado = execute_bot1_task(fecha_testing)
+    resultado = await execute_bot1_task(fecha_testing)
 
     logger.info("=" * 80)
     logger.info("BOT 1 COMPLETADO")
