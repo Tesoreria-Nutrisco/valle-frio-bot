@@ -9,11 +9,15 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
-# Agregar bot1 al path
+# Agregar bot1 y este directorio al path
 bot1_path = str(Path(__file__).parent.parent.parent / "bot1")
 sys.path.insert(0, bot1_path)
+flows_path = str(Path(__file__).parent)
+if flows_path not in sys.path:
+    sys.path.insert(0, flows_path)
 
 from prefect import flow, task, get_run_logger
+from prefect_secrets import cargar_secretos
 
 
 @task(name="ejecutar-bot1-task")
@@ -25,6 +29,9 @@ async def execute_bot1_task(fecha_testing: str = None):
         fecha_testing = datetime.now().strftime("%Y-%m-%d")
 
     logger.info(f"Ejecutando Bot 1 para fecha: {fecha_testing}")
+
+    # Poblar el entorno desde Prefect ANTES de importar bot1.config
+    await cargar_secretos()
 
     try:
         from bot1.run import BotConsorcio
@@ -59,4 +66,5 @@ async def bot1_flow(fecha_testing: Optional[str] = None):
 
 
 if __name__ == "__main__":
-    bot1_flow()
+    import asyncio
+    asyncio.run(bot1_flow())

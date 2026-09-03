@@ -9,15 +9,19 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
-# Agregar bot2 al path
+# Agregar bot2 y este directorio al path
 bot2_path = str(Path(__file__).parent.parent.parent / "bot2")
 sys.path.insert(0, bot2_path)
+flows_path = str(Path(__file__).parent)
+if flows_path not in sys.path:
+    sys.path.insert(0, flows_path)
 
 from prefect import flow, task, get_run_logger
+from prefect_secrets import cargar_secretos
 
 
 @task(name="ejecutar-bot2-task")
-def execute_bot2_task(fecha_prueba: str = None):
+async def execute_bot2_task(fecha_prueba: str = None):
     """Tarea que ejecuta Bot 2"""
     logger = get_run_logger()
 
@@ -25,6 +29,9 @@ def execute_bot2_task(fecha_prueba: str = None):
         fecha_prueba = datetime.now().strftime("%Y-%m-%d")
 
     logger.info(f"Ejecutando Bot 2 para fecha: {fecha_prueba}")
+
+    # Poblar el entorno desde Prefect ANTES de importar bot2.config
+    await cargar_secretos()
 
     try:
         from bot2.run import main as bot2_main
@@ -36,7 +43,7 @@ def execute_bot2_task(fecha_prueba: str = None):
 
 
 @flow(name="bot2-reconciliation", description="Bot 2 - Reconciliación Softland vs Cartola")
-def bot2_flow(fecha_testing: Optional[str] = None):
+async def bot2_flow(fecha_testing: Optional[str] = None):
     """
     Flow principal de Bot 2 para Prefect.
 
@@ -48,7 +55,7 @@ def bot2_flow(fecha_testing: Optional[str] = None):
     logger.info("INICIANDO BOT 2 - RECONCILIACIÓN")
     logger.info("=" * 80)
 
-    resultado = execute_bot2_task(fecha_testing)
+    resultado = await execute_bot2_task(fecha_testing)
 
     logger.info("=" * 80)
     logger.info("BOT 2 COMPLETADO")
@@ -58,4 +65,5 @@ def bot2_flow(fecha_testing: Optional[str] = None):
 
 
 if __name__ == "__main__":
-    bot2_flow()
+    import asyncio
+    asyncio.run(bot2_flow())
