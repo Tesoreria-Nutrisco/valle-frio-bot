@@ -68,3 +68,33 @@ async def cargar_secretos() -> None:
     if faltantes:
         # No es fatal: en local el .env cubre lo que falte.
         logger.warning(f"Bloques no disponibles: {', '.join(faltantes)}")
+
+
+class _PuenteLogsPrefect(logging.Handler):
+    """Reenvía los logs de los módulos del bot al run logger de Prefect."""
+
+    def emit(self, record):
+        try:
+            from prefect import get_run_logger
+
+            get_run_logger().log(record.levelno, self.format(record))
+        except Exception:
+            # Fuera de un flow run (ej. ejecución local) no hay nada que hacer.
+            pass
+
+
+def conectar_logs(*modulos: str) -> None:
+    """
+    Hace visibles en la UI de Prefect los logs de módulos que usan su propio
+    logging.getLogger(). Sin esto, esas líneas solo van al archivo de log local
+    y un fallo en el worker queda sin diagnóstico.
+    """
+    puente = _PuenteLogsPrefect()
+    puente.setFormatter(logging.Formatter("%(name)s - %(message)s"))
+
+    for nombre in modulos:
+        log = logging.getLogger(nombre)
+        # Evitar duplicar el handler si la task se reintenta.
+        if not any(isinstance(h, _PuenteLogsPrefect) for h in log.handlers):
+            log.addHandler(puente)
+        log.setLevel(logging.INFO)

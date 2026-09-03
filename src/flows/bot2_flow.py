@@ -17,7 +17,19 @@ if flows_path not in sys.path:
     sys.path.insert(0, flows_path)
 
 from prefect import flow, task, get_run_logger
-from prefect_secrets import cargar_secretos
+from prefect_secrets import cargar_secretos, conectar_logs
+
+# Módulos de Bot 2 cuyos logs deben verse en la UI de Prefect.
+MODULOS_BOT2 = (
+    "run",
+    "supabase_bot2",
+    "supabase_client",
+    "notificador",
+    "matcher",
+    "gaussdb_client",
+    "cartola_cleaner",
+    "drive_utils",
+)
 
 
 @task(name="ejecutar-bot2-task")
@@ -32,6 +44,7 @@ async def execute_bot2_task(fecha_prueba: str = None):
 
     # Poblar el entorno desde Prefect ANTES de importar bot2.config
     await cargar_secretos()
+    conectar_logs(*MODULOS_BOT2)
 
     try:
         from bot2.run import main as bot2_main
