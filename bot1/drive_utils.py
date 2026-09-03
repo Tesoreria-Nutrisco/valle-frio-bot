@@ -32,14 +32,20 @@ async def get_drive_service():
 
         logger.info("Paso 4: Obteniendo valor con .get()")
         creds_json_str = secret_block.get()
-        logger.info(f"Paso 5: Valor obtenido, primeros 50 chars: {str(creds_json_str)[:50] if creds_json_str else 'VACÍO'}")
+        logger.info(f"Paso 5: Valor obtenido, type={type(creds_json_str)}")
 
         if not creds_json_str:
             raise ValueError("Secret Block vacío")
 
-        logger.info("Paso 6: Parseando JSON")
-        creds_dict = json.loads(creds_json_str)
-        logger.info(f"Paso 7: JSON parseado, type={type(creds_dict)}, keys={list(creds_dict.keys())[:5]}")
+        # Secret Block devuelve dict directamente, no string JSON
+        if isinstance(creds_json_str, str):
+            logger.info("Paso 6: Parseando JSON (es string)")
+            creds_dict = json.loads(creds_json_str)
+        else:
+            logger.info("Paso 6: Ya es dict, sin parse")
+            creds_dict = creds_json_str
+
+        logger.info(f"Paso 7: Credenciales listas, keys={list(creds_dict.keys())[:5]}")
 
         logger.info("Paso 8: Creando credenciales de Google")
         credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
