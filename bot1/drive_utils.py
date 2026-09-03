@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
-def get_drive_service():
+async def get_drive_service():
     """Autentica con Google Drive usando Prefect Secret Block."""
     # ÚNICA OPCIÓN: Prefect Secret Block 'google-credentials-valle-frio'
     logger.info("=" * 80)
@@ -26,8 +26,8 @@ def get_drive_service():
         from prefect.blocks.system import Secret
 
         logger.info("Paso 1: Importando Secret Block")
-        logger.info("Paso 2: Llamando Secret.load('google-credentials-valle-frio')")
-        secret_block = Secret.load("google-credentials-valle-frio")
+        logger.info("Paso 2: Llamando await Secret.load('google-credentials-valle-frio')")
+        secret_block = await Secret.load("google-credentials-valle-frio")
         logger.info(f"Paso 3: Secret Block cargado: {secret_block}")
 
         logger.info("Paso 4: Obteniendo valor con .get()")

@@ -91,7 +91,7 @@ class BotConsorcio:
                 self.page.set_default_timeout(30000)
 
                 # Inicializar Google Drive
-                self.drive_service = get_drive_service()
+                self.drive_service = await get_drive_service()
 
                 # ========== PASO 0: Login ==========
                 await paso_0_login(self.page)
