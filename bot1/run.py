@@ -201,16 +201,20 @@ class BotConsorcio:
                                 pass
 
                             fecha_busqueda_str_fmt = fecha_busqueda_tabla.strftime("%d/%m/%Y")
+                            # Igual que el PASO 2: hay que despachar también 'change',
+                            # si no Angular no registra la fecha y deja Filtrar inerte.
                             await self.page.evaluate(f"""
                                 () => {{
                                     const inputs = document.querySelectorAll('input.md-datepicker-input');
                                     if (inputs.length >= 1) {{
                                         inputs[0].value = '{fecha_busqueda_str_fmt}';
                                         inputs[0].dispatchEvent(new Event('input', {{ bubbles: true }}));
+                                        inputs[0].dispatchEvent(new Event('change', {{ bubbles: true }}));
                                     }}
                                     if (inputs.length >= 2) {{
                                         inputs[1].value = '{fecha_busqueda_str_fmt}';
                                         inputs[1].dispatchEvent(new Event('input', {{ bubbles: true }}));
+                                        inputs[1].dispatchEvent(new Event('change', {{ bubbles: true }}));
                                     }}
                                 }}
                             """)
