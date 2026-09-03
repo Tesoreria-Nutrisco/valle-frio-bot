@@ -15,86 +15,51 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
-def _get_secret(block_name: str, env_var: str) -> str | None:
-    """Intenta cargar desde Prefect Secret Block, fallback a env var."""
+def get_drive_service():
+    """Autentica con Google Drive usando Prefect Secret Block."""
+    # ÚNICA OPCIÓN: Prefect Secret Block 'google-credentials-valle-frio'
+    logger.info("=" * 80)
+    logger.info("INTENTANDO CARGAR CREDENCIALES DESDE PREFECT SECRET BLOCK")
+    logger.info("=" * 80)
+
     try:
         from prefect.blocks.system import Secret
-        logger.info(f"Intentando cargar {block_name} desde Prefect Secret Block")
-        secret_block = Secret.load(block_name)
-        value = secret_block.get()
-        if value:
-            logger.info(f"✓ Cargado desde Secret Block: {block_name}")
-            return value
+
+        logger.info("Paso 1: Importando Secret Block")
+        logger.info("Paso 2: Llamando Secret.load('google-credentials-valle-frio')")
+        secret_block = Secret.load("google-credentials-valle-frio")
+        logger.info(f"Paso 3: Secret Block cargado: {secret_block}")
+
+        logger.info("Paso 4: Obteniendo valor con .get()")
+        creds_json_str = secret_block.get()
+        logger.info(f"Paso 5: Valor obtenido, primeros 50 chars: {str(creds_json_str)[:50] if creds_json_str else 'VACÍO'}")
+
+        if not creds_json_str:
+            raise ValueError("Secret Block vacío")
+
+        logger.info("Paso 6: Parseando JSON")
+        creds_dict = json.loads(creds_json_str)
+        logger.info(f"Paso 7: JSON parseado, type={type(creds_dict)}, keys={list(creds_dict.keys())[:5]}")
+
+        logger.info("Paso 8: Creando credenciales de Google")
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        logger.info("Paso 9: Credentials creadas")
+
+        logger.info("Paso 10: Construyendo servicio Drive")
+        service = build("drive", "v3", credentials=credentials)
+        logger.info("✓ ÉXITO: Credenciales cargadas desde Secret Block")
+        logger.info("=" * 80)
+        return service
+
     except Exception as e:
-        logger.debug(f"Secret Block {block_name} no disponible: {e}")
-
-    # Fallback a variable de entorno
-    value = os.getenv(env_var)
-    if value:
-        logger.info(f"Usando {env_var} desde variable de entorno")
-    return value
-
-
-def get_drive_service():
-    """Autentica con Google Drive usando service account."""
-    # Opción 1: Leer desde archivo (desarrollo local)
-    creds_path = None
-    if CREDENTIALS_PATH:
-        creds_path = Path(CREDENTIALS_PATH)
-        if creds_path.exists():
-            logger.info(f"Usando credentials desde archivo: {creds_path}")
-            credentials = Credentials.from_service_account_file(str(creds_path), scopes=SCOPES)
-            return build("drive", "v3", credentials=credentials)
-
-    # Búsqueda de alternativas locales
-    alternatives = [
-        Path("./credentials.json"),
-        Path("credentials.json"),
-        Path.home() / "credentials.json",
-    ]
-    for alt_path in alternatives:
-        if alt_path.exists():
-            logger.info(f"Usando credentials desde: {alt_path}")
-            credentials = Credentials.from_service_account_file(str(alt_path), scopes=SCOPES)
-            return build("drive", "v3", credentials=credentials)
-
-    # Opción 2: Prefect Secret Block o env var (producción)
-    creds_json_str = _get_secret("google-credentials-valle-frio", "GOOGLE_CREDENTIALS_JSON")
-    if creds_json_str:
-        try:
-            creds_dict = json.loads(creds_json_str)
-            credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-            return build("drive", "v3", credentials=credentials)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error al parsear credenciales JSON: {e}")
-
-    # Opción 3: Leer desde variable de entorno base64
-    creds_b64 = os.getenv("GOOGLE_CREDENTIALS_B64")
-    if creds_b64:
-        try:
-            logger.info("Decodificando credentials desde GOOGLE_CREDENTIALS_B64")
-            creds_json_str = base64.b64decode(creds_b64).decode("utf-8")
-            creds_dict = json.loads(creds_json_str)
-            credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-            logger.info("Usando credentials desde variable GOOGLE_CREDENTIALS_B64")
-            return build("drive", "v3", credentials=credentials)
-        except (base64.binascii.Error, json.JSONDecodeError, UnicodeDecodeError) as e:
-            logger.error(f"Error decodificando GOOGLE_CREDENTIALS_B64: {e}")
-
-    # Opción 3: Leer desde variable de entorno JSON plano
-    creds_json_str = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    if creds_json_str:
-        try:
-            logger.info("Usando credentials desde variable de entorno GOOGLE_CREDENTIALS_JSON")
-            creds_dict = json.loads(creds_json_str)
-            credentials = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-            return build("drive", "v3", credentials=credentials)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error al parsear GOOGLE_CREDENTIALS_JSON: {e}")
-
-    raise FileNotFoundError(
-        "No se encontraron credenciales de Google Drive. "
-        "Configura una de: (1) credentials.json en el directorio del proyecto, "
+        logger.error("=" * 80)
+        logger.error(f"✗ ERROR CARGANDO SECRET BLOCK")
+        logger.error(f"Tipo: {type(e).__name__}")
+        logger.error(f"Mensaje: {e}")
+        logger.error("=" * 80, exc_info=True)
+        raise FileNotFoundError(
+            "No se encontraron credenciales de Google Drive. "
+            "Prefect Secret Block 'google-credentials-valle-frio' no disponible. "
         "(2) Prefect Secret Block 'google-credentials' con el JSON, "
         "(3) GOOGLE_CREDENTIALS_B64 como variable de entorno con JSON en base64, "
         "(4) GOOGLE_CREDENTIALS_JSON como variable de entorno con JSON plano."
