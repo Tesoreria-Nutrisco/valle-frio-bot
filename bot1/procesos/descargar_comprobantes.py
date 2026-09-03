@@ -283,25 +283,14 @@ async def paso_3_descargar_comprobante_rut(page, rut, fecha_pago, paso_0_login_f
                         # Navegar a Pago nómina > Consultar
                         logger.info("Navegando a Pago nómina > Consultar...")
                         try:
-                            await page.evaluate("""
-                                (function() {
-                                    const links = document.querySelectorAll('a');
-                                    for (let link of links) {
-                                        if (!link.textContent.includes('Consultar')) continue;
-                                        let parent = link.parentElement;
-                                        for (let j = 0; j < 10; j++) {
-                                            if (!parent) break;
-                                            if (parent.textContent.includes('Pago nómina') &&
-                                                parent.textContent.includes('Ingresar') &&
-                                                !parent.textContent.includes('Botón de pago')) {
-                                                link.click();
-                                                return;
-                                            }
-                                            parent = parent.parentElement;
-                                        }
-                                    }
-                                })()
-                            """)
+                            # Mismo locator que usa run.py: el JS anterior exigía
+                            # 'Ingresar' en el contenedor y que no dijera 'Botón de
+                            # pago', condiciones que el menú del banco ya no cumple.
+                            consultar_link = page.locator("text=Pago nómina").locator("../..").locator("text=Consultar").first
+                            if await consultar_link.count() > 0:
+                                await consultar_link.click()
+                            else:
+                                await page.locator("text=Consultar").first.click()
                             await asyncio.sleep(3)
                             logger.info("Navegación completada, reintentando descarga...")
                         except Exception as nav_e:

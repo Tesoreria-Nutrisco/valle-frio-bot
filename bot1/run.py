@@ -166,39 +166,28 @@ class BotConsorcio:
                             await self.page.click("nav a:has-text('Pagos'), [role='tablist'] a:has-text('Pagos')", timeout=10000)
                             await asyncio.sleep(2)
 
-                            await self.page.evaluate("""
-                                (function() {
-                                    const allAnchors = document.querySelectorAll('a');
-                                    for (let i = 0; i < allAnchors.length; i++) {
-                                        const link = allAnchors[i];
-                                        if (!link.textContent.includes('Consultar')) continue;
-                                        let foundPagoNomina = false;
-                                        let parent = link.parentElement;
-                                        for (let j = 0; j < 10; j++) {
-                                            if (!parent) break;
-                                            if (parent.textContent.includes('Pago nómina') &&
-                                                parent.textContent.includes('Ingresar') &&
-                                                !parent.textContent.includes('Botón de pago')) {
-                                                foundPagoNomina = true;
-                                                break;
-                                            }
-                                            parent = parent.parentElement;
-                                        }
-                                        if (foundPagoNomina) {
-                                            link.click();
-                                            return;
-                                        }
-                                    }
-                                })()
-                            """)
+                            # Mismo locator que el PASO 2. El JS que había antes exigía
+                            # que el contenedor dijera 'Ingresar' y no dijera 'Botón de
+                            # pago'; el menú del banco ya no cumple ninguna de las dos,
+                            # así que nunca hacía click y la tabla no llegaba a cargar.
+                            consultar_link = self.page.locator("text=Pago nómina").locator("../..").locator("text=Consultar").first
+                            if await consultar_link.count() > 0:
+                                await consultar_link.click()
+                                logger.info("ETAPA 1: clickeado Consultar (locator anidado)")
+                            else:
+                                await self.page.locator("text=Consultar").first.click()
+                                logger.info("ETAPA 1: clickeado Consultar (locator simple)")
+
                             await asyncio.sleep(3)
 
                             # Abrir buscador y filtrar por fecha_carga+1 de esta nómina
                             try:
                                 await self.page.click("a[ng-click*='openFilters']", timeout=5000)
                                 await asyncio.sleep(1)
-                            except:
-                                pass
+                            except Exception as e:
+                                # Si el panel no se abre, los inputs de fecha no existen
+                                # y todo lo que sigue falla: dejarlo dicho en el log.
+                                logger.warning(f"ETAPA 1: no se pudo abrir el panel de filtros: {type(e).__name__}")
 
                             fecha_busqueda_str_fmt = fecha_busqueda_tabla.strftime("%d/%m/%Y")
                             # Igual que el PASO 2: hay que despachar también 'change',
@@ -220,12 +209,22 @@ class BotConsorcio:
                             """)
                             await asyncio.sleep(0.5)
 
-                            # Click en Filtrar
-                            try:
-                                await self.page.click("input[type='submit'][value='Filtrar']", timeout=5000)
+                            # Click en Filtrar. Se hace desde JS: el calendario del
+                            # datepicker queda flotando sobre el botón y Playwright
+                            # descarta el click por elemento interceptado.
+                            estado_filtro = await self.page.evaluate("""
+                                () => {
+                                    const btn = document.querySelector("input[type='submit'][value='Filtrar']");
+                                    if (!btn) return 'sin-boton';
+                                    if (btn.disabled) return 'deshabilitado';
+                                    btn.click();
+                                    return 'ok';
+                                }
+                            """)
+                            if estado_filtro == 'ok':
                                 await asyncio.sleep(2)
-                            except:
-                                logger.warning(f"No se pudo hacer click en Filtrar para nómina parcial")
+                            else:
+                                logger.warning(f"ETAPA 1: no se pudo filtrar (botón {estado_filtro})")
 
                             # Intentar buscar esta nómina en la tabla filtrada
                             try:
