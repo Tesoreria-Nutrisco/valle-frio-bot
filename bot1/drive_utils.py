@@ -42,11 +42,11 @@ def get_drive_service():
             credentials = Credentials.from_service_account_file(str(alt_path), scopes=SCOPES)
             return build("drive", "v3", credentials=credentials)
 
-    # Opción 2: Cargar desde Prefect Secret Block 'google-credentials'
+    # Opción 2: Cargar desde Prefect Secret Block 'google-credentials-valle-frio'
     try:
         from prefect.blocks.system import Secret
-        logger.info("Intentando cargar credentials desde Prefect Secret Block 'google-credentials'")
-        secret_block = Secret.load("google-credentials")
+        logger.info("Intentando cargar credentials desde Prefect Secret Block 'google-credentials-valle-frio'")
+        secret_block = Secret.load("google-credentials-valle-frio")
         creds_json_str = secret_block.get()
         if creds_json_str:
             logger.info("Decodificando JSON del Secret Block")
@@ -55,7 +55,7 @@ def get_drive_service():
             logger.info("✓ Usando credentials desde Prefect Secret Block")
             return build("drive", "v3", credentials=credentials)
         else:
-            logger.error("Secret Block 'google-credentials' vacío o None")
+            logger.error("Secret Block 'google-credentials-valle-frio' vacío o None")
     except Exception as e:
         logger.error(f"Error cargando Secret Block: {type(e).__name__}: {e}")
 
