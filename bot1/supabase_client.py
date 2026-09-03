@@ -132,15 +132,12 @@ def insertar_nomina(id_nomina: str, fecha_carga, fecha_pago, estado: str = "parc
     """
     try:
         client = _get_client()
-        client.rpc(
-            "insertar_nomina",
-            {
-                "p_id_nomina": id_nomina,
-                "p_fecha_carga": str(fecha_carga),
-                "p_fecha_pago": str(fecha_pago),
-                "p_estado": estado
-            }
-        ).execute()
+        client.table("bot1_nominas_descargadas").insert({
+            "id_nomina": id_nomina,
+            "fecha_carga": str(fecha_carga),
+            "fecha_pago": str(fecha_pago),
+            "estado": estado
+        }).execute()
         return True
     except Exception as e:
         raise Exception(f"Error insertando nómina: {e}")
@@ -182,13 +179,9 @@ def actualizar_nomina_estado(id_nomina: str, estado: str, ruta_drive: str = None
     """
     try:
         client = _get_client()
-        client.rpc(
-            "actualizar_nomina",
-            {
-                "p_id_nomina": id_nomina,
-                "p_estado": estado
-            }
-        ).execute()
+        client.table("bot1_nominas_descargadas").update({
+            "estado": estado
+        }).eq("id_nomina", id_nomina).execute()
         return True
     except Exception as e:
         raise Exception(f"Error actualizando nómina: {e}")
