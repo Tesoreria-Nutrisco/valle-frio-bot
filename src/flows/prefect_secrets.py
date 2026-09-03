@@ -91,18 +91,36 @@ class _PuenteLogsPrefect(logging.Handler):
             pass
 
 
-def conectar_logs(*modulos: str) -> None:
+# Librerías que inundarían la UI: httpx logea cada request a Supabase.
+RUIDOSOS = (
+    "httpx",
+    "httpcore",
+    "urllib3",
+    "googleapiclient",
+    "google",
+    "google_auth_httplib2",
+    "asyncio",
+    "playwright",
+    "charset_normalizer",
+)
+
+
+def conectar_logs(*_modulos: str) -> None:
     """
-    Hace visibles en la UI de Prefect los logs de módulos que usan su propio
-    logging.getLogger(). Sin esto, esas líneas solo van al archivo de log local
-    y un fallo en el worker queda sin diagnóstico.
+    Hace visibles en la UI de Prefect los logs de los módulos del bot.
+
+    Se engancha al logger raíz en vez de a nombres concretos: según cómo Prefect
+    importe el entrypoint, un mismo módulo puede registrarse como 'run' o como
+    'bot2.run', y enumerarlos a mano deja fuera justo el que falló.
     """
     puente = _PuenteLogsPrefect()
     puente.setFormatter(logging.Formatter("%(name)s - %(message)s"))
 
-    for nombre in modulos:
-        log = logging.getLogger(nombre)
-        # Evitar duplicar el handler si la task se reintenta.
-        if not any(isinstance(h, _PuenteLogsPrefect) for h in log.handlers):
-            log.addHandler(puente)
-        log.setLevel(logging.INFO)
+    raiz = logging.getLogger()
+    # Idempotente: la task puede reintentarse dentro del mismo proceso.
+    if not any(isinstance(h, _PuenteLogsPrefect) for h in raiz.handlers):
+        raiz.addHandler(puente)
+    raiz.setLevel(logging.INFO)
+
+    for nombre in RUIDOSOS:
+        logging.getLogger(nombre).setLevel(logging.WARNING)

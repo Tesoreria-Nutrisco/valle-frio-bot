@@ -648,16 +648,23 @@ def main(fecha_testing: str = None):
         logger.error("=" * 80)
         import traceback
         logger.error(traceback.format_exc())
-        sys.exit(1)
+        # Propagar en vez de sys.exit(): bajo Prefect, SystemExit se reporta como
+        # un "Crashed" genérico y se pierde el traceback. El __main__ de abajo
+        # traduce la excepción a código de salida para el uso por CLI.
+        raise
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--sync":
-        # Sincronizar comprobantes históricos
-        sincronizar_comprobantes_historicos()
-    else:
-        fecha_testing = None
-        if len(sys.argv) > 1:
-            fecha_testing = sys.argv[1]
+    try:
+        if len(sys.argv) > 1 and sys.argv[1] == "--sync":
+            # Sincronizar comprobantes históricos
+            sincronizar_comprobantes_historicos()
+        else:
+            fecha_testing = None
+            if len(sys.argv) > 1:
+                fecha_testing = sys.argv[1]
 
-        main(fecha_testing)
+            main(fecha_testing)
+    except Exception:
+        # main() ya dejó el traceback en el log.
+        sys.exit(1)
