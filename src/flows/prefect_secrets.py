@@ -81,7 +81,19 @@ async def cargar_secretos() -> None:
 class _PuenteLogsPrefect(logging.Handler):
     """Reenvía los logs de los módulos del bot al run logger de Prefect."""
 
+    def __init__(self):
+        super().__init__()
+        self._reentrante = False
+
     def emit(self, record):
+        # Los logs de Prefect ya salen en la UI. Reenviarlos crea un ciclo:
+        # el logger de Prefect propaga al raíz, donde vive este handler, que
+        # vuelve a emitir por Prefect. Python corta la reentrada descartando
+        # el record, y el resultado es que no se ve NINGÚN log.
+        if record.name.startswith("prefect") or self._reentrante:
+            return
+
+        self._reentrante = True
         try:
             from prefect import get_run_logger
 
@@ -89,6 +101,8 @@ class _PuenteLogsPrefect(logging.Handler):
         except Exception:
             # Fuera de un flow run (ej. ejecución local) no hay nada que hacer.
             pass
+        finally:
+            self._reentrante = False
 
 
 # Librerías que inundarían la UI: httpx logea cada request a Supabase.
