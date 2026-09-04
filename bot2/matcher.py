@@ -148,15 +148,11 @@ def _descargar_nomina_excel_desde_drive(
         Ruta local al archivo descargado, None si no existe
     """
     try:
-        # Inicializar Drive API
-        cred_path = Path(__file__).parent.parent / "credentials.json"
-        if not cred_path.exists():
-            logger.warning(f"Credenciales de Drive no encontradas")
-            return None
-
-        scopes = ["https://www.googleapis.com/auth/drive"]
-        credentials = Credentials.from_service_account_file(str(cred_path), scopes=scopes)
-        drive = build("drive", "v3", credentials=credentials)
+        # Autenticación centralizada: en Prefect las credenciales vienen del
+        # Secret Block, no de un credentials.json en disco. Buscarlo en disco
+        # devolvía None en el worker y toda nómina terminaba en [SKIP].
+        from drive_utils import get_drive_service
+        drive = get_drive_service()
 
         # Buscar archivo con el ID de nómina en el nombre (búsqueda global, incluyendo subcarpetas)
         query = f"name contains '{id_nomina}' and name contains '.xlsx' and trashed=false"

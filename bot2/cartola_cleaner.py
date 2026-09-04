@@ -9,26 +9,22 @@ from pathlib import Path
 from typing import Optional
 import tempfile
 
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
 from config import (
-    GOOGLE_DRIVE_CREDENTIALS_PATH,
     DRIVE_FOLDER_ID_CARTOLAS,
     TEAM_DRIVE_ID
 )
+# Autenticación centralizada en bot1/drive_utils: resuelve las credenciales
+# desde el Secret Block de Prefect, no desde un archivo en disco.
+from drive_utils import get_drive_service
 
 logger = logging.getLogger(__name__)
 
 
 def obtener_servicio_drive():
     """Inicializa cliente de Google Drive."""
-    scopes = ["https://www.googleapis.com/auth/drive"]
-    credentials = Credentials.from_service_account_file(
-        GOOGLE_DRIVE_CREDENTIALS_PATH, scopes=scopes
-    )
-    return build("drive", "v3", credentials=credentials)
+    return get_drive_service()
 
 
 def descargar_cartolas_rango(banco: str, dias_atras: int = 30, fecha_hasta: datetime = None) -> Optional[pd.DataFrame]:
